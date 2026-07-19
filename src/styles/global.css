@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * EMBES · tokens shadcn/ui (CSS variables en HSL).
+ * Paleta acordada: primario amarillo rgb(255,222,89) → HSL 48 100% 67%.
+ * Modo oscuro por defecto: el fondo blanco pasa a negro (background 0 0% 0%).
+ * Sin ningún tono azul residual. PLACEHOLDER de marca pendiente de confirmación.
+ */
+@layer base {
+  :root {
+    /* Modo oscuro por defecto: fondo negro, superficies grises neutras. */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 98%;
+    /* Amarillo EMBES — texto oscuro encima para contraste (AAA en botones). */
+    --primary: 48 100% 67%;
+    --primary-foreground: 0 0% 8%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 48 40% 14%;
+    --accent-foreground: 48 100% 80%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 48 100% 67%;
+    --radius: 0.625rem;
+  }
+  /* .dark replica el mismo tema oscuro: la site es dark-only por ahora.
+     Si en el futuro se recupere un tema claro, este bloque lo albergará. */
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 48 100% 67%;
+    --primary-foreground: 0 0% 8%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 48 40% 14%;
+    --accent-foreground: 48 100% 80%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 48 100% 67%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+
+  /* CLS=0: reservar el aspect-ratio de imágenes evita salto de layout. */
+  img, picture { aspect-ratio: var(--img-ratio, auto); }
+}

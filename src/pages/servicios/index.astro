@@ -1,0 +1,35 @@
+---
+import { getCollection } from 'astro:content';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import Base from '@/layouts/Base.astro';
+import type { CollectionEntry } from 'astro:content';
+
+const servicios = (await getCollection('servicios')).sort((a, b) => a.data.title.localeCompare(b.data.title));
+
+const title = 'Servicios profesionales en España · Directorio EMBES';
+const metaDescription = 'Explora las categorías de servicios profesionales y urgentes disponibles en EMBES: electricistas, dentistas, clases particulares y más por toda España.';
+const canonical = new URL('/servicios/', 'https://www.embes.es').href;
+---
+<Base title={title} metaDescription={metaDescription} canonical={canonical}>
+  <section class="space-y-8">
+    <div class="space-y-3">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Categorías de servicios</h1>
+      <p class="text-lg text-muted-foreground max-w-2xl">
+        Nodo central de servicios. Cada categoría dispone de una página nacional y de landings por ciudad para contactar con profesionales verificados.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {servicios.map((s: CollectionEntry<'servicios'>) => (
+        <Card class="transition-all duration-embes ease-embes hover:opacity-95 hover:shadow-md">
+          <a href={`/servicios/${s.slug}/`} class="block">
+            <CardHeader>
+              <CardTitle>{s.data.title}</CardTitle>
+              <CardDescription>{s.data.metaDescription}</CardDescription>
+            </CardHeader>
+          </a>
+        </Card>
+      ))}
+    </div>
+  </section>
+</Base>

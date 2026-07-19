@@ -1,0 +1,56 @@
+---
+import { getCollection } from 'astro:content';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import Base from '@/layouts/Base.astro';
+import type { CollectionEntry } from 'astro:content';
+
+const servicios = (await getCollection('servicios')).sort((a, b) => a.data.title.localeCompare(b.data.title));
+const localidades = (await getCollection('localidades')).sort((a, b) => a.data.nombre.localeCompare(b.data.nombre));
+
+const title = 'EMBES · Servicios profesionales urgentes en toda España';
+const metaDescription = 'Directorio de servicios profesionales y urgentes en España. Encuentra electricistas, dentistas, fontaneros y más, distribuidos por ciudad.';
+const canonical = new URL('https://www.embes.es/').href;
+---
+<Base title={title} metaDescription={metaDescription} canonical={canonical}>
+  <section class="space-y-6">
+    <div class="space-y-3">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Servicios profesionales en toda España</h1>
+      <p class="text-lg text-muted-foreground max-w-2xl">
+        EMBES es el directorio de servicios urgentes y profesionales por ciudad. Selecciona un servicio y una localidad para contactar con profesionales verificados de tu zona.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-semibold">Servicios</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {servicios.map((s: CollectionEntry<'servicios'>) => (
+          <Card class="transition-all duration-embes ease-embes hover:opacity-95 hover:shadow-md">
+            <a href={`/servicios/${s.slug}/`} class="block">
+              <CardHeader>
+                <CardTitle>{s.data.title}</CardTitle>
+                <CardDescription>{s.data.metaDescription}</CardDescription>
+              </CardHeader>
+            </a>
+          </Card>
+        ))}
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold">Localidades</h2>
+        <a href="/localidades/" class="text-sm font-medium text-primary hover:underline">Ver todas las localidades →</a>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {localidades.map((l: CollectionEntry<'localidades'>) => (
+          <a
+            href={`/servicios/${servicios[0].slug}/${l.slug}/`}
+            class="rounded-md border bg-card px-3 py-1.5 text-sm transition-all duration-embes ease-embes hover:bg-accent hover:text-accent-foreground"
+          >
+            {l.data.nombre}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,70 @@
+---
+import '../styles/global.css';
+import SeoHead from '@/components/SeoHead.astro';
+import { buildOrganizationJsonLd } from '@/lib/jsonld';
+
+export interface Props {
+  title: string;
+  metaDescription: string;
+  canonical: string;
+  jsonLd?: unknown[];
+  ogType?: 'website' | 'article';
+  robots?: string;
+}
+
+const { title, metaDescription, canonical, jsonLd = [], ogType, robots } = Astro.props;
+
+// EMBES Organization se inyecta siempre (entidad legal en todas las páginas).
+const orgBlock = buildOrganizationJsonLd();
+const blocks = [orgBlock, ...jsonLd];
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- FASE 3 · Componente centralizador de SEO por página -->
+    <SeoHead
+      title={title}
+      metaDescription={metaDescription}
+      canonical={canonical}
+      jsonLd={blocks}
+      ogType={ogType}
+      robots={robots}
+    />
+  </head>
+  <body>
+    <!-- Skeleton local estático en el layout de base; cada página lo refina. -->
+    <header class="border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+      <div class="container flex h-16 items-center justify-between">
+        <a href="/" class="flex items-center gap-2 text-lg font-bold tracking-tight" aria-label="EMBES — Inicio">
+          <span class="inline-block h-8 w-8 rounded-md bg-primary" aria-hidden="true"></span>
+          <span>EMBES</span>
+        </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground" aria-label="Navegación principal">
+          <a href="/" class="transition-colors hover:text-foreground">Inicio</a>
+          <a href="/servicios/" class="transition-colors hover:text-foreground">Servicios</a>
+          <a href="/localidades/" class="transition-colors hover:text-foreground">Localidades</a>
+        </nav>
+        <slot name="mobile-nav" />
+      </div>
+    </header>
+
+    <main class="container py-8">
+      <slot />
+    </main>
+
+    <footer class="border-t mt-12 py-8 text-sm text-muted-foreground">
+      <div class="container flex flex-col md:flex-row justify-between gap-4">
+        <p>© {new Date().getFullYear()} EMBES · Plataforma de servicios Rank & Rent en España.</p>
+        <nav class="flex gap-4" aria-label="Pie de página">
+          <a href="/servicios/" class="hover:text-foreground">Servicios</a>
+          <a href="/localidades/" class="hover:text-foreground">Localidades</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

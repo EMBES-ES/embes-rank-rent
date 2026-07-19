@@ -1,0 +1,60 @@
+---
+/**
+ * EMBES · <SeoHead /> — Componente centralizador de SEO (Fase 3).
+ * Se instancia una sola vez en el <head> del layout principal. Recibe las
+ * propiedades dinámicas de cada página y emite:
+ *   - <title> dinámico (keyword transaccional + localidad)
+ *   - <meta name="description"> orientada a CTR
+ *   - <link rel="canonical"> inquebrantable (trailing slash, ruta transaccional)
+ *   - Inyección de N bloques JSON-LD ya construidos por la página con lib/jsonld
+ *   - Open Graph / Twitter mínimos para CTR social
+ *
+ * Diseño: la PÁGINA es dueña de los datos contextuales (servicio+localidad);
+ * SeoHead solo serializa y normaliza. Esto evita acoplar SeoHead a las
+ * colecciones y permite reutilizarlo en hubs (index, servicios/, localidades/).
+ */
+
+export interface SeoHeadProps {
+  title: string;
+  metaDescription: string;
+  /** Canonical absoluto, siempre con trailing slash (ej. .../toledo/). */
+  canonical: string;
+  /** Bloques JSON-LD ya construidos (lib/jsonld). null/undefined se filtran. */
+  jsonLd?: unknown[];
+  /** Múltiples variantes de título para paginación/silos; por defecto [title]. */
+  ogType?: 'website' | 'article';
+  /** Robots por página: por defecto index,follow. Put 'noindex' en drafts. */
+  robots?: string;
+}
+
+const { title, metaDescription, canonical, jsonLd = [], ogType = 'website', robots = 'index, follow' } = Astro.props;
+
+// Núcleo defensivo: nunca emitir canonical vacío ni JSON-LD malformado.
+const safeCanonical = canonical.endsWith('/') ? canonical : `${canonical}/`;
+const blocks = (jsonLd ?? []).filter(Boolean);
+
+// Normaliza una vez el JSON-LD: escapa </> para no romper el parser de HTML
+// dentro de <script type="application/ld+json">. Cada bloque se serializa aparte.
+const serialize = (obj: unknown) => JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+---
+
+<!-- FASE 3 · META transaccional + canonical inquebrantable -->
+<title>{title}</title>
+<meta name="description" content={metaDescription} />
+<link rel="canonical" href={safeCanonical} />
+<meta name="robots" content={robots} />
+
+<!-- Open Graph / Twitter: mínimos, sin recursos externos bloqueantes -->
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={safeCanonical} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={metaDescription} />
+<meta property="og:site_name" content="EMBES" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={metaDescription} />
+
+<!-- Inyección de datos estructurados (JSON-LD) · motor lib/jsonld -->
+{blocks.map((block) => (
+  <script type="application/ld+json" is:inline set:html={serialize(block)} />
+))}

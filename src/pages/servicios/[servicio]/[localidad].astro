@@ -1,0 +1,209 @@
+---
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+import { Card, CardContent } from '@/components/ui/card';
+import { buttonVariants } from '@/components/ui/button';
+import FaqAccordion from '@/components/FaqAccordion.tsx';
+import MobileNav from '@/components/MobileNav.tsx';
+import Base from '@/layouts/Base.astro';
+import heroImg from '@/assets/hero.png';
+import { Clock, ShieldCheck, BadgeCheck, MapPin, Phone } from 'lucide-react';
+import {
+  buildBusinessJsonLd, buildBreadcrumbJsonLd, buildFaqJsonLd, type JsonLdContext,
+} from '@/lib/jsonld';
+import { localizeFaq, telDisplay } from '@/lib/content-utils';
+import type { CollectionEntry } from 'astro:content';
+
+/**
+ * EMBES · servicios/[servicio]/[localidad].astro — NÚCLEO TRANSACCIONAL Rank & Rent.
+ * Esta es la página que se arrienda. Se genera como SSG: una ruta estática por
+ * cada par (servicio, localidad) originado en getStaticPaths() — producto cartesiano.
+ */
+export async function getStaticPaths() {
+  // Producto cartesiano Servicios × Localidades — N x M rutas en build time.
+  const [servicios, localidades] = await Promise.all([
+    getCollection('servicios'),
+    getCollection('localidades'),
+  ]);
+
+  const paths = [];
+  for (const servicio of servicios) {
+    for (const localidad of localidades) {
+      paths.push({
+        params: { servicio: servicio.slug, localidad: localidad.slug },
+        props: { servicio, localidad },
+      });
+    }
+  }
+  return paths;
+}
+
+const { servicio, localidad } = Astro.props as {
+  servicio: CollectionEntry<'servicios'>;
+  localidad: CollectionEntry<'localidades'>;
+};
+const s = servicio.data;
+const l = localidad.data;
+
+// --- SEO meta + canonical inquebrantable (Fase 3) ---
+const path = `/servicios/${servicio.slug}/${localidad.slug}/`;
+const canonical = new URL(path, 'https://www.embes.es').href;
+const metaTitle = `${s.keywordTransaccional} ${l.nombre} | EMBES`;
+const metaDescription = `${s.keywordTransaccional} ${l.nombre}. ${s.metaDescription} Atención en ${l.nombreFormal}.`;
+const telefonoHref = `tel:${telDisplay(servicio)}`;
+const telefonoTexto = servicio.data.telefono;
+
+// --- Contenido localizado (Fase 2 anti-thin-content) ---
+const faqItems = localizeFaq(servicio, localidad);
+
+// Barrios en prosa con conjunción ("…, X y Y") y distritos opcionales.
+const barriosTop = l.barrios.slice(0, 4);
+const listaBarrios =
+  barriosTop.length > 1
+    ? `${barriosTop.slice(0, -1).join(', ')} y ${barriosTop[barriosTop.length - 1]}`
+    : barriosTop[0] ?? '';
+const listaDistritos = l.distritos.length
+  ? ` Trabajamos también en distritos como ${l.distritos.slice(0, 3).join(', ')}.`
+  : '';
+
+// --- JSON-LD: negocio + breadcrumb + FAQ (Fase 3) ---
+const ctx: JsonLdContext = {
+  servicio, localidad, canonical,
+  logoUrl: new URL('/logo.png', 'https://www.embes.es').href,
+};
+const jsonLd = [
+  buildBusinessJsonLd(ctx),
+  buildBreadcrumbJsonLd(ctx),
+  buildFaqJsonLd(servicio, localidad),
+];
+---
+<Base
+  title={metaTitle}
+  metaDescription={metaDescription}
+  canonical={canonical}
+  jsonLd={jsonLd}
+  ogType="article"
+>
+  <span slot="mobile-nav">
+    <MobileNav
+      client:idle
+      links={[
+        { label: 'Servicios', href: '/servicios/' },
+        { label: 'Localidades', href: '/localidades/' },
+        { label: s.title, href: `/servicios/${servicio.slug}/` },
+      ]}
+      telefono={telefonoTexto}
+      profesional={s.title}
+    />
+  </span>
+
+  <article class="space-y-12">
+    {/* ============================ ABOVE THE FOLD ============================ */}
+    <header class="space-y-4">
+      <p class="text-sm text-muted-foreground">
+        <a href="/" class="hover:underline">Inicio</a> /
+        <a href="/servicios/" class="hover:underline">Servicios</a> /
+        <a href={`/servicios/${servicio.slug}/`} class="hover:underline">{s.title}</a> /
+        <span>{l.nombre}</span>
+      </p>
+
+      {/* H1 con intención de búsqueda exacta — sin recursos bloqueadores encima */}
+      <h1 class="text-3xl md:text-5xl font-bold tracking-tight leading-tight">
+        {s.keywordTransaccional} <span class="text-primary">{l.nombre}</span>
+      </h1>
+
+      <p class="text-lg text-muted-foreground max-w-2xl">
+        {s.nombreProfesion} verificados en {l.nombreFormal}. {s.tarifaOrientativa ? `Tarifa ${s.tarifaOrientativa}.` : ''} Respuesta en el día.
+      </p>
+
+      {/* CTA agresivo tel: — shadcn Button envolviendo enlace */}
+      <div class="flex flex-col sm:flex-row gap-3 items-start">
+        <a href={telefonoHref} class={buttonVariants({ size: 'lg' })} aria-label={`Llamar a ${s.title} en ${l.nombre}`}>
+          <Phone className="h-5 w-5" /> Llamar ahora · {telefonoTexto}
+        </a>
+        <a href={`/servicios/${servicio.slug}/`} class={buttonVariants({ variant: 'outline', size: 'lg' })}>
+          Más sobre {s.title}
+        </a>
+      </div>
+    </header>
+
+    {/* ======================== MÓDULO E-E-A-T (Lucide) ======================== */}
+    <section aria-labelledby="confianza-h2" class="space-y-4">
+      <h2 id="confianza-h2" class="text-xl font-semibold">Por qué elegirnos en {l.nombre}</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {s.metricasConfianza.map((m, i) => {
+          const Icon = i === 0 ? Clock : i === 1 ? ShieldCheck : BadgeCheck;
+          return (
+            <Card class="transition-all duration-embes ease-embes hover:opacity-95">
+              <CardContent class="flex flex-col items-start gap-2 p-5">
+                <Icon className="h-6 w-6 text-primary" aria-hidden="true" />
+                <span class="text-2xl font-bold leading-none">{m.valor}</span>
+                <span class="text-sm text-muted-foreground">{m.etiqueta}</span>
+              </CardContent>
+            </Card>
+          );
+        })}
+        <Card class="transition-all duration-embes ease-embes hover:opacity-95">
+          <CardContent class="flex flex-col items-start gap-2 p-5">
+            <MapPin className="h-6 w-6 text-primary" aria-hidden="true" />
+            <span class="text-2xl font-bold leading-none">{l.barrios.length}+</span>
+            <span class="text-sm text-muted-foreground">Barrios cubiertos en {l.nombre}</span>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+
+    {/* ==================== CUERPO NARRATIVO GEOLOCALIZADO =================== */}
+    <section class="space-y-4 max-w-3xl">
+      <h2 class="text-xl font-semibold">{s.title} en {l.nombre}, {l.region}</h2>
+      <p class="leading-relaxed">{l.introduccionLocal}</p>
+      <p class="leading-relaxed">
+        Nuestros {s.nombreProfesion} cubren toda la zona de {l.nombre}, incluyendo los barrios de
+        {listaBarrios}, y los códigos postales {l.codigosPostales.slice(0, 5).join(', ')}.{listaDistritos}
+      </p>
+    </section>
+
+    {/* ====================== IMAGEN OPTIMIZADA AVIF/WebP ===================== */}
+    <section class="space-y-4">
+      <h2 class="text-xl font-semibold">Cobertura de {s.title} en {l.nombre}</h2>
+      <Image
+        src={heroImg}
+        alt={`${s.title} en ${l.nombre}: zona de cobertura por barrios`}
+        width={1024}
+        height={480}
+        formats={['avif', 'webp']}
+        sizes="(max-width: 768px) 100vw, 1024px"
+        class="rounded-lg border w-full h-auto"
+      />
+    </section>
+
+    {/* =================== SERVICIOS OFRECIDOS (cuerpo) ===================== */}
+    <section class="space-y-4">
+      <h2 class="text-xl font-semibold">Servicios de {s.nombreProfesion} que cubrimos</h2>
+      <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {s.serviciosOfrecidos.map((item) => (
+          <li class="flex items-start gap-2">
+            <BadgeCheck className="h-4 w-4 mt-1 text-primary shrink-0" aria-hidden="true" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {/* ====================== RESOLUCIÓN DE INTENCIÓN (FAQ) =================== */}
+    <section aria-labelledby="faq-h2" class="space-y-4">
+      <h2 id="faq-h2" class="text-xl font-semibold">Preguntas frecuentes sobre {s.title} en {l.nombre}</h2>
+      {/* Acordeón accesible Radix — el único JS del cliente, hidratado off-critical */}
+      <FaqAccordion client:visible items={faqItems} />
+    </section>
+
+    {/* ====================== CTA FINAL (segundo intento) =================== */}
+    <section class="rounded-lg bg-accent p-6 sm:p-8 space-y-3">
+      <h2 class="text-2xl font-bold">¿Necesitas {s.title.toLowerCase()} en {l.nombre} ahora?</h2>
+      <p class="text-muted-foreground">Llama y un {s.nombreProfesion} de {l.nombre} gestiona tu incidencia hoy.</p>
+      <a href={telefonoHref} class={buttonVariants({ size: 'lg' })}>
+        <Phone className="h-5 w-5" /> {telefonoTexto}
+      </a>
+    </section>
+  </article>
+</Base>
