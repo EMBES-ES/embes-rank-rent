@@ -1,0 +1,660 @@
+     1→import type { Metadata } from "next";
+     2→import Link from "next/link";
+     3→import { notFound } from "next/navigation";
+     4→import {
+     5→  KeyRound,
+     6→  Zap,
+     7→  Droplets,
+     8→  Hammer,
+     9→  PaintBucket,
+    10→  Wrench,
+    11→  ToolCase,
+    12→  Heart,
+    13→  Smile,
+    14→  Sparkles,
+    15→  GraduationCap,
+    16→  Dumbbell,
+    17→  BookOpen,
+    18→  Music,
+    19→  Pencil,
+    20→  Scissors,
+    21→  ShieldAlert,
+    22→  HeartPulse,
+    23→  Home,
+    24→  CheckCircle2,
+    25→  ShieldCheck,
+    26→  Clock,
+    27→  ThumbsUp,
+    28→  ArrowRight,
+    29→  MapPin,
+    30→  type LucideIcon,
+    31→} from "lucide-react";
+    32→
+    33→import { Navbar } from "@/components/navbar";
+    34→import { Footer } from "@/components/footer";
+    35→import {
+    36→  Breadcrumb,
+    37→  BreadcrumbList,
+    38→  BreadcrumbItem,
+    39→  BreadcrumbLink,
+    40→  BreadcrumbSeparator,
+    41→} from "@/components/ui/breadcrumb";
+    42→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+    43→import { Button } from "@/components/ui/button";
+    44→import { Separator } from "@/components/ui/separator";
+    45→import { Badge } from "@/components/ui/badge";
+    46→import {
+    47→  services,
+    48→  locations,
+    49→  getServiceBySlug,
+    50→  clusters,
+    51→} from "@/lib/data";
+    52→import type { Service, Location } from "@/lib/data";
+    53→import {
+    54→  generateMeta,
+    55→  generateIntro,
+    56→  generateBenefits,
+    57→  generateFAQ,
+    58→  generateStructuredData,
+    59→  getRelatedServices,
+    60→  getNearbyLocations,
+    61→  generateLocationMeta,
+    62→  generateLocationIntro,
+    63→  getLocationServices,
+    64→} from "@/lib/seo-content";
+    65→
+    66→// ─── Icon map ──────────────────────────────────────────────────────
+    67→const iconMap: Record<string, LucideIcon> = {
+    68→  KeyRound, Zap, Droplets, Hammer, PaintBucket, Wrench, ToolCase,
+    69→  Heart, Smile, Sparkles, GraduationCap, Dumbbell, BookOpen, Music,
+    70→  Pencil, Scissors, ShieldAlert, HeartPulse, Home,
+    71→};
+    72→
+    73→// ─── Static Params (SSG all 510 pages) ──────────────────────────────
+    74→export function generateStaticParams() {
+    75→  const params: { slug: string[] }[] = [];
+    76→  // 480 service-location pages
+    77→  for (const service of services) {
+    78→    for (const location of locations) {
+    79→      params.push({ slug: [service.slug, location.slug] });
+    80→    }
+    81→  }
+    82→  // 30 location hub pages
+    83→  for (const location of locations) {
+    84→    params.push({ slug: [location.slug] });
+    85→  }
+    86→  return params;
+    87→}
+    88→
+    89→// ─── Metadata ──────────────────────────────────────────────────────
+    90→interface SlugProps {
+    91→  params: Promise<{ slug: string[] }>;
+    92→}
+    93→
+    94→export async function generateMetadata({ params }: SlugProps): Promise<Metadata> {
+    95→  const { slug } = await params;
+    96→
+    97→  if (slug.length === 2) {
+    98→    // Service-location page
+    99→    const service = getServiceBySlug(slug[0]);
+   100→    const loc = locations.find((l) => l.slug === slug[1]);
+   101→    if (!service || !loc) return { title: "EMBES" };
+   102→    const meta = generateMeta(service, loc);
+   103→    return {
+   104→      title: meta.title,
+   105→      description: meta.description,
+   106→      openGraph: { title: meta.title, description: meta.description, type: "website" },
+   107→      alternates: { canonical: `https://embes.es/${service.slug}/${loc.slug}` },
+   108→    };
+   109→  }
+   110→
+   111→  if (slug.length === 1) {
+   112→    // Location hub page
+   113→    const loc = locations.find((l) => l.slug === slug[0]);
+   114→    if (!loc) return { title: "EMBES" };
+   115→    const meta = generateLocationMeta(loc);
+   116→    return {
+   117→      title: meta.title,
+   118→      description: meta.description,
+   119→      openGraph: { title: meta.title, description: meta.description },
+   120→      alternates: { canonical: `https://embes.es/${loc.slug}` },
+   121→    };
+   122→  }
+   123→
+   124→  return { title: "EMBES" };
+   125→}
+   126→
+   127→// ─── Main Content Generator ────────────────────────────────────────
+   128→function generateMainContent(service: Service, location: Location): string[] {
+   129→  return [
+   130→    `El servicio de ${service.name.toLowerCase()} abarca todas las necesidades relacionadas con ${service.description.toLowerCase().replace(".", "")}. En EMBES, conectamos a usuarios con profesionales certificados que cuentan con la experiencia y las herramientas necesarias para resolver cualquier situación, desde las intervenciones más rutinarias hasta los casos más complejos que requieren una atención especializada.`,
+   131→    `En ${location.name}, provincia de ${location.province} (${location.community}), la demanda de ${service.shortName.toLowerCase()} ha crecido de forma sostenida en los últimos años. La comunidad local valora la proximidad y la confianza que aportan los profesionales verificados, y por eso EMBES trabaja cada día para ampliar su red de especialistas en toda la zona, garantizando cobertura tanto en el casco urbano como en las áreas circundantes.`,
+   132→    `A través de EMBES, solicitar ${service.shortName.toLowerCase()} en ${location.name} es un proceso sencillo y transparente. Solo tienes que describir tu necesidad, recibirás presupuestos sin compromiso de hasta tres profesionales verificados y podrás comparar valoraciones y precios antes de tomar tu decisión. Todo el proceso se gestiona de forma segura y sin intermediarios ocultos, para que tengas la tranquilidad de contratar con garantías.`,
+   133→  ];
+   134→}
+   135→
+   136→// ─── Chevron icon for FAQ ──────────────────────────────────────────
+   137→function ChevronDownIcon({ className }: { className?: string }) {
+   138→  return (
+   139→    <svg
+   140→      xmlns="http://www.w3.org/2000/svg"
+   141→      viewBox="0 0 20 20"
+   142→      fill="currentColor"
+   143→      className={className}
+   144→      aria-hidden="true"
+   145→    >
+   146→      <path
+   147→        fillRule="evenodd"
+   148→        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+   149→        clipRule="evenodd"
+   150→      />
+   151→    </svg>
+   152→  );
+   153→}
+   154→
+   155→// ─── Service-Location Landing Page ─────────────────────────────────
+   156→function ServiceLocationPage({ service, location }: { service: Service; location: Location }) {
+   157→  const intro = generateIntro(service, location);
+   158→  const benefits = generateBenefits(service, location);
+   159→  const faqItems = generateFAQ(service, location);
+   160→  const structuredData = generateStructuredData(service, location);
+   161→  const relatedServices = getRelatedServices(service);
+   162→  const nearbyLocations = getNearbyLocations(service, location);
+   163→  const otherServices = services.filter((s) => s.slug !== service.slug);
+   164→
+   165→  const faqJsonLd = {
+   166→    "@context": "https://schema.org",
+   167→    "@type": "FAQPage",
+   168→    mainEntity: faqItems.map((item) => ({
+   169→      "@type": "Question",
+   170→      name: item.question,
+   171→      acceptedAnswer: { "@type": "Answer", text: item.answer },
+   172→    })),
+   173→  };
+   174→
+   175→  return (
+   176→    <>
+   177→      {/* Structured Data */}
+   178→      <script
+   179→        type="application/ld+json"
+   180→        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+   181→      />
+   182→      <script
+   183→        type="application/ld+json"
+   184→        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+   185→      />
+   186→
+   187→      <div className="flex-1">
+   188→        {/* Breadcrumb */}
+   189→        <nav aria-label="Ruta de navegación" className="border-b border-border/40">
+   190→          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+   191→            <Breadcrumb>
+   192→              <BreadcrumbList>
+   193→                <BreadcrumbItem>
+   194→                  <BreadcrumbLink asChild>
+   195→                    <Link href="/">Inicio</Link>
+   196→                  </BreadcrumbLink>
+   197→                </BreadcrumbItem>
+   198→                <BreadcrumbSeparator />
+   199→                <BreadcrumbItem>
+   200→                  <BreadcrumbLink asChild>
+   201→                    <Link href="/">{service.shortName}</Link>
+   202→                  </BreadcrumbLink>
+   203→                </BreadcrumbItem>
+   204→                <BreadcrumbSeparator />
+   205→                <BreadcrumbItem>
+   206→                  <span className="text-muted-foreground">
+   207→                    {service.shortName} en {location.name}
+   208→                  </span>
+   209→                </BreadcrumbItem>
+   210→              </BreadcrumbList>
+   211→            </Breadcrumb>
+   212→          </div>
+   213→        </nav>
+   214→
+   215→        <main>
+   216→          {/* H1 + Intro */}
+   217→          <section aria-labelledby="hero-h1" className="py-12 lg:py-16">
+   218→            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   219→              <h1
+   220→                id="hero-h1"
+   221→                className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+   222→              >
+   223→                {service.shortName} en {location.name}{" "}
+   224→                <span className="text-primary">— Profesionales Verificados</span>
+   225→              </h1>
+   226→              <p className="mt-6 text-lg text-muted-foreground max-w-3xl leading-relaxed">
+   227→                {intro}
+   228→              </p>
+   229→            </div>
+   230→          </section>
+   231→
+   232→          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   233→            <Separator />
+   234→          </div>
+   235→
+   236→          {/* Benefits */}
+   237→          <section aria-labelledby="benefits-h2" className="py-12 lg:py-16">
+   238→            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   239→              <h2
+   240→                id="benefits-h2"
+   241→                className="text-2xl sm:text-3xl font-bold tracking-tight mb-8"
+   242→              >
+   243→                ¿Por qué elegir EMBES para {service.shortName} en{" "}
+   244→                {location.name}?
+   245→              </h2>
+   246→              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+   247→                {benefits.map((b, i) => {
+   248→                  const icons = [ShieldCheck, ThumbsUp, Clock, CheckCircle2];
+   249→                  const Icon = icons[i] || CheckCircle2;
+   250→                  return (
+   251→                    <Card key={i} className="card-hover transition-all duration-200">
+   252→                      <CardContent className="p-6">
+   253→                        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+   254→                          <Icon className="size-5 text-primary" />
+   255→                        </div>
+   256→                        <h3 className="font-semibold mb-2">{b.title}</h3>
+   257→                        <p className="text-sm text-muted-foreground leading-relaxed">
+   258→                          {b.description}
+   259→                        </p>
+   260→                      </CardContent>
+   261→                    </Card>
+   262→                  );
+   263→                })}
+   264→              </div>
+   265→            </div>
+   266→          </section>
+   267→
+   268→          {/* Main Content 2-col */}
+   269→          <section aria-labelledby="content-h2" className="py-12 lg:py-16">
+   270→            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   271→              <h2 id="content-h2" className="sr-only">
+   272→                Sobre {service.name} en {location.name}
+   273→              </h2>
+   274→              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+   275→                {/* Left: Content */}
+   276→                <article className="lg:col-span-2">
+   277→                  <h2 className="text-2xl font-bold tracking-tight mb-6">
+   278→                    Sobre el servicio de {service.name} en {location.name}
+   279→                  </h2>
+   280→                  <div className="space-y-4 text-muted-foreground leading-relaxed">
+   281→                    {generateMainContent(service, location).map((p, i) => (
+   282→                      <p key={i}>{p}</p>
+   283→                    ))}
+   284→                  </div>
+   285→                </article>
+   286→
+   287→                {/* Right: CTA + Related */}
+   288→                <aside className="lg:sticky lg:top-20 self-start space-y-6">
+   289→                  <Card className="bg-primary/10 border-primary/20">
+   290→                    <CardContent className="p-6 text-center">
+   291→                      <h3 className="font-semibold text-lg mb-2">
+   292→                        ¿Necesitas {service.shortName} en {location.name}?
+   293→                      </h3>
+   294→                      <p className="text-sm text-muted-foreground mb-4">
+   295→                        Solicita presupuestos gratuitos de profesionales
+   296→                        verificados.
+   297→                      </p>
+   298→                      <Button size="lg" className="w-full">
+   299→                        Solicitar presupuesto gratuito
+   300→                      </Button>
+   301→                    </CardContent>
+   302→                  </Card>
+   303→
+   304→                  <Card>
+   305→                    <CardHeader>
+   306→                      <CardTitle className="text-base">
+   307→                        Servicios relacionados en {location.name}
+   308→                      </CardTitle>
+   309→                    </CardHeader>
+   310→                    <CardContent className="space-y-2">
+   311→                      {relatedServices.map((s) => (
+   312→                        <Link
+   313→                          key={s.slug}
+   314→                          href={`/${s.slug}/${location.slug}`}
+   315→                          className="flex items-center justify-between group py-1.5"
+   316→                        >
+   317→                          <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">
+   318→                            {s.shortName} en {location.name}
+   319→                          </span>
+   320→                          <ArrowRight className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+   321→                        </Link>
+   322→                      ))}
+   323→                    </CardContent>
+   324→                  </Card>
+   325→                </aside>
+   326→              </div>
+   327→            </div>
+   328→          </section>
+   329→
+   330→          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   331→            <Separator />
+   332→          </div>
+   333→
+   334→          {/* FAQ */}
+   335→          <section aria-labelledby="faq-h2" className="py-12 lg:py-16">
+   336→            <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+   337→              <h2
+   338→                id="faq-h2"
+   339→                className="text-2xl sm:text-3xl font-bold tracking-tight mb-8"
+   340→              >
+   341→                Preguntas frecuentes sobre {service.shortName} en{" "}
+   342→                {location.name}
+   343→              </h2>
+   344→              <div className="space-y-0 border rounded-lg">
+   345→                {faqItems.map((item, i) => (
+   346→                  <details
+   347→                    key={i}
+   348→                    className="group border-b last:border-b-0 border-border/60"
+   349→                  >
+   350→                    <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium hover:text-primary transition-colors list-none [&::-webkit-details-marker]:hidden">
+   351→                      {item.question}
+   352→                      <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+   353→                    </summary>
+   354→                    <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">
+   355→                      {item.answer}
+   356→                    </div>
+   357→                  </details>
+   358→                ))}
+   359→              </div>
+   360→            </div>
+   361→          </section>
+   362→
+   363→          {/* Related Locations */}
+   364→          {nearbyLocations.length > 0 && (
+   365→            <section
+   366→              aria-labelledby="nearby-h2"
+   367→              className="py-12 lg:py-16 bg-muted/30"
+   368→            >
+   369→              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   370→                <h2
+   371→                  id="nearby-h2"
+   372→                  className="text-2xl sm:text-3xl font-bold tracking-tight mb-8"
+   373→                >
+   374→                  {service.shortName} en otras ciudades de{" "}
+   375→                  {location.community}
+   376→                </h2>
+   377→                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+   378→                  {nearbyLocations.map((loc) => (
+   379→                    <Link
+   380→                      key={loc.slug}
+   381→                      href={`/${service.slug}/${loc.slug}`}
+   382→                      className="group"
+   383→                    >
+   384→                      <Card className="card-hover h-full border-border/50 hover:border-primary/50">
+   385→                        <CardContent className="py-4">
+   386→                          <div className="flex items-center gap-3">
+   387→                            <span className="flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary shrink-0">
+   388→                              <MapPin className="size-4" />
+   389→                            </span>
+   390→                            <div>
+   391→                              <p className="font-medium text-sm group-hover:text-primary transition-colors">
+   392→                                {loc.name}
+   393→                              </p>
+   394→                              <p className="text-xs text-muted-foreground">
+   395→                                {loc.province}
+   396→                              </p>
+   397→                            </div>
+   398→                          </div>
+   399→                        </CardContent>
+   400→                      </Card>
+   401→                    </Link>
+   402→                  ))}
+   403→                </div>
+   404→              </div>
+   405→            </section>
+   406→          )}
+   407→
+   408→          {/* Internal Link Cloud */}
+   409→          <section aria-labelledby="links-h2" className="py-12 lg:py-16">
+   410→            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   411→              <h2
+   412→                id="links-h2"
+   413→                className="text-2xl sm:text-3xl font-bold tracking-tight mb-8"
+   414→              >
+   415→                Más servicios en {location.name}
+   416→              </h2>
+   417→              <div className="flex flex-wrap gap-2 sm:gap-3">
+   418→                {otherServices.map((s) => (
+   419→                  <Link
+   420→                    key={s.slug}
+   421→                    href={`/${s.slug}/${location.slug}`}
+   422→                    className="inline-flex items-center rounded-full border border-border/60 px-4 py-2 text-sm text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+   423→                  >
+   424→                    {s.shortName} en {location.name}
+   425→                  </Link>
+   426→                ))}
+   427→              </div>
+   428→            </div>
+   429→          </section>
+   430→        </main>
+   431→      </div>
+   432→    </>
+   433→  );
+   434→}
+   435→
+   436→// ─── Location Hub Page ────────────────────────────────────────────
+   437→function LocationHubPage({ location }: { location: Location }) {
+   438→  const locServices = getLocationServices(location);
+   439→  const nearbyLocs = locations.filter(
+   440→    (l) => l.community === location.community && l.slug !== location.slug
+   441→  );
+   442→
+   443→  return (
+   444→    <div className="flex-1">
+   445→      {/* Breadcrumb */}
+   446→      <nav aria-label="Ruta de navegación" className="border-b border-border/40">
+   447→        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+   448→          <Breadcrumb>
+   449→            <BreadcrumbList>
+   450→              <BreadcrumbItem>
+   451→                <BreadcrumbLink asChild>
+   452→                  <Link href="/">Inicio</Link>
+   453→                </BreadcrumbLink>
+   454→              </BreadcrumbItem>
+   455→              <BreadcrumbSeparator />
+   456→              <BreadcrumbItem>
+   457→                <span className="text-muted-foreground">{location.name}</span>
+   458→              </BreadcrumbItem>
+   459→            </BreadcrumbList>
+   460→          </Breadcrumb>
+   461→        </div>
+   462→      </nav>
+   463→
+   464→      <main>
+   465→        {/* Header */}
+   466→        <section aria-labelledby="loc-h1" className="py-12 lg:py-16">
+   467→          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   468→            <div className="flex items-center gap-3 mb-4">
+   469→              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+   470→                <MapPin className="size-5 text-primary" />
+   471→              </span>
+   472→              <span className="text-sm text-muted-foreground">
+   473→                {location.province} · {location.community}
+   474→              </span>
+   475→            </div>
+   476→            <h1
+   477→              id="loc-h1"
+   478→              className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+   479→            >
+   480→              {location.name}{" "}
+   481→              <span className="text-primary">
+   482→                — Directorio de Profesionales Verificados
+   483→              </span>
+   484→            </h1>
+   485→            <p className="mt-6 text-lg text-muted-foreground max-w-3xl leading-relaxed">
+   486→              {generateLocationIntro(location)}
+   487→            </p>
+   488→          </div>
+   489→        </section>
+   490→
+   491→        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   492→          <Separator />
+   493→        </div>
+   494→
+   495→        {/* Services Grid */}
+   496→        <section aria-labelledby="services-h2" className="py-12 lg:py-16">
+   497→          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   498→            <h2
+   499→              id="services-h2"
+   500→              className="text-2xl sm:text-3xl font-bold tracking-tight mb-8"
+   501→            >
+   502→              Servicios disponibles en {location.name}
+   503→            </h2>
+   504→            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+   505→              {locServices.map((s) => {
+   506→                const Icon = iconMap[s.icon];
+   507→                return (
+   508→                  <Link
+   509→                    key={s.slug}
+   510→                    href={`/${s.slug}/${location.slug}`}
+   511→                    className="group"
+   512→                  >
+   513→                    <Card className="card-hover transition-all duration-200 h-full">
+   514→                      <CardHeader>
+   515→                        {Icon && (
+   516→                          <Icon className="size-6 text-primary mb-2" />
+   517→                        )}
+   518→                        <h3 className="leading-snug">
+   519→                          {s.shortName} en {location.name}
+   520→                        </h3>
+   521→                      </CardHeader>
+   522→                      <CardContent>
+   523→                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+   524→                          {s.description}
+   525→                        </p>
+   526→                        <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
+   527→                          Ver {s.shortName} en {location.name}
+   528→                          <ArrowRight className="size-4" />
+   529→                        </span>
+   530→                      </CardContent>
+   531→                    </Card>
+   532→                  </Link>
+   533→                );
+   534→              })}
+   535→            </div>
+   536→          </div>
+   537→        </section>
+   538→
+   539→        {/* Service Clusters */}
+   540→        <section aria-labelledby="clusters-h2" className="py-12 lg:py-16">
+   541→          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   542→            <h2
+   543→              id="clusters-h2"
+   544→              className="text-2xl sm:text-3xl font-bold tracking-tight mb-8"
+   545→            >
+   546→              Explorar por categoría en {location.name}
+   547→            </h2>
+   548→            <div className="space-y-10">
+   549→              {clusters.map((cluster) => {
+   550→                const ClusterIcon = iconMap[cluster.icon];
+   551→                return (
+   552→                  <div key={cluster.id}>
+   553→                    <div className="flex items-center gap-3 mb-4">
+   554→                      {ClusterIcon && (
+   555→                        <ClusterIcon className="size-6 text-primary shrink-0" />
+   556→                      )}
+   557→                      <h3 className="text-xl font-semibold">{cluster.name}</h3>
+   558→                    </div>
+   559→                    <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" role="list">
+   560→                      {cluster.services.map((s) => (
+   561→                        <li key={s.slug}>
+   562→                          <Link
+   563→                            href={`/${s.slug}/${location.slug}`}
+   564→                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-primary hover:bg-muted/50 transition-colors"
+   565→                          >
+   566→                            <ArrowRight className="size-3 shrink-0" />
+   567→                            {s.shortName} en {location.name}
+   568→                          </Link>
+   569→                        </li>
+   570→                      ))}
+   571→                    </ul>
+   572→                  </div>
+   573→                );
+   574→              })}
+   575→            </div>
+   576→          </div>
+   577→        </section>
+   578→
+   579→        {/* Nearby Locations */}
+   580→        {nearbyLocs.length > 0 && (
+   581→          <section
+   582→            aria-labelledby="nearby-loc-h2"
+   583→            className="py-12 lg:py-16 bg-muted/30"
+   584→          >
+   585→            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+   586→              <h2
+   587→                id="nearby-loc-h2"
+   588→                className="text-2xl sm:text-3xl font-bold tracking-tight mb-8"
+   589→              >
+   590→                Otras ciudades en {location.community}
+   591→              </h2>
+   592→              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+   593→                {nearbyLocs.map((loc) => (
+   594→                  <Link
+   595→                    key={loc.slug}
+   596→                    href={`/${loc.slug}`}
+   597→                    className="group"
+   598→                  >
+   599→                    <Card className="card-hover h-full">
+   600→                      <CardContent className="py-4 flex items-center gap-3">
+   601→                        <MapPin className="size-4 text-primary shrink-0" />
+   602→                        <div>
+   603→                          <p className="font-medium text-sm group-hover:text-primary transition-colors">
+   604→                            {loc.name}
+   605→                          </p>
+   606→                          <p className="text-xs text-muted-foreground">
+   607→                            {loc.province}
+   608→                            {loc.isCapital && (
+   609→                              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
+   610→                                Capital
+   611→                              </Badge>
+   612→                            )}
+   613→                          </p>
+   614→                        </div>
+   615→                      </CardContent>
+   616→                    </Card>
+   617→                  </Link>
+   618→                ))}
+   619→              </div>
+   620→            </div>
+   621→          </section>
+   622→        )}
+   623→      </main>
+   624→    </div>
+   625→  );
+   626→}
+   627→
+   628→// ─── Page Dispatcher ───────────────────────────────────────────────
+   629→export default async function CatchAllPage({ params }: SlugProps) {
+   630→  const { slug } = await params;
+   631→
+   632→  // 2-segment: /servicio/localidad → Service-Location landing page
+   633→  if (slug.length === 2) {
+   634→    const service = getServiceBySlug(slug[0]);
+   635→    const loc = locations.find((l) => l.slug === slug[1]);
+   636→    if (!service || !loc) notFound();
+   637→    return (
+   638→      <div className="min-h-screen flex flex-col">
+   639→        <Navbar />
+   640→        <ServiceLocationPage service={service} location={loc} />
+   641→        <Footer />
+   642→      </div>
+   643→    );
+   644→  }
+   645→
+   646→  // 1-segment: /localidad → Location Hub page
+   647→  if (slug.length === 1) {
+   648→    const loc = locations.find((l) => l.slug === slug[0]);
+   649→    if (!loc) notFound();
+   650→    return (
+   651→      <div className="min-h-screen flex flex-col">
+   652→        <Navbar />
+   653→        <LocationHubPage location={loc} />
+   654→        <Footer />
+   655→      </div>
+   656→    );
+   657→  }
+   658→
+   659→  notFound();
+   660→}

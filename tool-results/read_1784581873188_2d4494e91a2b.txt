@@ -1,0 +1,575 @@
+     1→     1→export interface Service {
+     2→     2→  slug: string;
+     3→     3→  name: string;
+     4→     4→  shortName: string;
+     5→     5→  description: string;
+     6→     6→  icon: string;
+     7→     7→  cluster: string;
+     8→     8→}
+     9→     9→
+    10→    10→export interface Location {
+    11→    11→  name: string;
+    12→    12→  slug: string;
+    13→    13→  province: string;
+    14→    14→  community: string;
+    15→    15→  isCapital?: boolean;
+    16→    16→}
+    17→    17→
+    18→    18→export interface ServiceCluster {
+    19→    19→  id: string;
+    20→    20→  name: string;
+    21→    21→  description: string;
+    22→    22→  icon: string;
+    23→    23→  services: Service[];
+    24→    24→}
+    25→    25→
+    26→    26→export interface ProvinceGroup {
+    27→    27→  name: string;
+    28→    28→  slug: string;
+    29→    29→  community: string;
+    30→    30→  locations: Location[];
+    31→    31→  topServices: string[];
+    32→    32→}
+    33→    33→
+    34→    34→export interface FAQ {
+    35→    35→  question: string;
+    36→    36→  answer: string;
+    37→    37→}
+    38→    38→
+    39→    39→export type ViewType =
+    40→    40→  | { type: "home" }
+    41→    41→  | { type: "servicios" }
+    42→    42→  | { type: "localidades" }
+    43→    43→  | { type: "service-location"; service: string; location: string };
+    44→    44→
+    45→    45→export type NavigateFn = (view: ViewType) => void;
+    46→    46→
+    47→    47→// ─── Services ───────────────────────────────────────────────────────
+    48→    48→export const services: Service[] = [
+    49→    49→  {
+    50→    50→    slug: "cerrajeros",
+    51→    51→    name: "Cerrajería profesional",
+    52→    52→    shortName: "Cerrajeros",
+    53→    53→    description:
+    54→    54→      "Apertura de puertas, cambio de cerraduras, instalación de cilindros de seguridad y blindajes. Servicio urgente disponible 24 horas.",
+    55→    55→    icon: "KeyRound",
+    56→    56→    cluster: "emergencias",
+    57→    57→  },
+    58→    58→  {
+    59→    59→    slug: "electricistas",
+    60→    60→    name: "Electricidad y servicios eléctricos",
+    61→    61→    shortName: "Electricistas",
+    62→    62→    description:
+    63→    63→      "Instalaciones eléctricas, reparación de averías, cuadros eléctricos, certificaciones y eficiencia energética para hogares y negocios.",
+    64→    64→    icon: "Zap",
+    65→    65→    cluster: "emergencias",
+    66→    66→  },
+    67→    67→  {
+    68→    68→    slug: "fontaneria",
+    69→    69→    name: "Fontanería y saneamiento",
+    70→    70→    shortName: "Fontanería",
+    71→    71→    description:
+    72→    72→      "Reparación de fugas, instalación de tuberías, desatascos, calderas y sistemas de calefacción. Profesionales con garantía.",
+    73→    73→    icon: "Droplets",
+    74→    74→    cluster: "emergencias",
+    75→    75→  },
+    76→    76→  {
+    77→    77→    slug: "albanileria",
+    78→    78→    name: "Albañilería y construcción",
+    79→    79→    shortName: "Albañiles",
+    80→    80→    description:
+    81→    81→      "Reformas integrales, tabiquería, revocos, solados, enfoscados y obras menores. Presupuesto sin compromiso.",
+    82→    82→    icon: "Hammer",
+    83→    83→    cluster: "reformas",
+    84→    84→  },
+    85→    85→  {
+    86→    86→    slug: "pintores",
+    87→    87→    name: "Pintura y decoración de interiores",
+    88→    88→    shortName: "Pintores",
+    89→    89→    description:
+    90→    90→      "Pintura de paredes, techos, fachadas, empapelados y tratamientos decorativos. Acabados profesionales con materiales de primera calidad.",
+    91→    91→    icon: "PaintBucket",
+    92→    92→    cluster: "reformas",
+    93→    93→  },
+    94→    94→  {
+    95→    95→    slug: "carpinteros",
+    96→    96→    name: "Carpintería y ebanistería",
+    97→    97→    shortName: "Carpinteros",
+    98→    98→    description:
+    99→    99→      "Carpintería de madera y PVC, muebles a medida, puertas, ventanas, armarios empotrados y restauración.",
+   100→   100→    icon: "Wrench",
+   101→   101→    cluster: "reformas",
+   102→   102→  },
+   103→   103→  {
+   104→   104→    slug: "reparaciones",
+   105→   105→    name: "Reparaciones del hogar",
+   106→   106→    shortName: "Reparaciones",
+   107→   107→    description:
+   108→   108→      "Reparaciones diversas: electrodomésticos, muebles, persianas, puertas, ventanas y pequeños arreglos domésticos.",
+   109→   109→    icon: "ToolCase",
+   110→   110→    cluster: "reformas",
+   111→   111→  },
+   112→   112→  {
+   113→   113→    slug: "cuidado-mayores",
+   114→   114→    name: "Cuidado de personas mayores",
+   115→   115→    shortName: "Cuidado de mayores",
+   116→   116→    description:
+   117→   117→      "Atención domiciliaria para personas mayores: ayuda personal, compañía, supervisión médica y apoyo en actividades diarias.",
+   118→   118→    icon: "Heart",
+   119→   119→    cluster: "salud",
+   120→   120→  },
+   121→   121→  {
+   122→   122→    slug: "dentistas",
+   123→   123→    name: "Odontología y salud dental",
+   124→   124→    shortName: "Dentistas",
+   125→   125→    description:
+   126→   126→      "Revisiones dentales, limpieza, implantes, ortodoncia, blanqueamiento y tratamientos de estética dental.",
+   127→   127→    icon: "Smile",
+   128→   128→    cluster: "salud",
+   129→   129→  },
+   130→   130→  {
+   131→   131→    slug: "estetica",
+   132→   132→    name: "Centros de estética y belleza",
+   133→   133→    shortName: "Estética",
+   134→   134→    description:
+   135→   135→      "Tratamientos faciales y corporales, depilación, manicura, pedicura y servicios de belleza profesional.",
+   136→   136→    icon: "Sparkles",
+   137→   137→    cluster: "salud",
+   138→   138→  },
+   139→   139→  {
+   140→   140→    slug: "clases-particulares",
+   141→   141→    name: "Clases particulares y refuerzo",
+   142→   142→    shortName: "Clases particulares",
+   143→   143→    description:
+   144→   144→      "Profesores particulares de matemáticas, lengua, inglés, ciencias y todas las asignaturas. Todos los niveles educativos.",
+   145→   145→    icon: "GraduationCap",
+   146→   146→    cluster: "educacion",
+   147→   147→  },
+   148→   148→  {
+   149→   149→    slug: "entrenadores",
+   150→   150→    name: "Entrenamiento personal",
+   151→   151→    shortName: "Entrenadores personales",
+   152→   152→    description:
+   153→   153→      "Entrenadores certificados para preparación física, pérdida de peso, hipertrofia y planes nutricionales personalizados.",
+   154→   154→    icon: "Dumbbell",
+   155→   155→    cluster: "educacion",
+   156→   156→  },
+   157→   157→  {
+   158→   158→    slug: "carreras-universitarias",
+   159→   159→    name: "Preparación de carreras universitarias",
+   160→   160→    shortName: "Carreras universitarias",
+   161→   161→    description:
+   162→   162→      "Preparación especializada para acceso a grados universitarios: PCE, selectividad, pruebas de acceso y orientación vocacional.",
+   163→   163→    icon: "BookOpen",
+   164→   164→    cluster: "educacion",
+   165→   165→  },
+   166→   166→  {
+   167→   167→    slug: "musica",
+   168→   168→    name: "Clases de música",
+   169→   169→    shortName: "Música",
+   170→   170→    description:
+   171→   171→      "Profesores de piano, guitarra, violín, batería, canto y teoría musical. Clases individuales y colectivas para todas las edades.",
+   172→   172→    icon: "Music",
+   173→   173→    cluster: "educacion",
+   174→   174→  },
+   175→   175→  {
+   176→   176→    slug: "peluquerias",
+   177→   177→    name: "Peluquería profesional",
+   178→   178→    shortName: "Peluquerías",
+   179→   179→    description:
+   180→   180→      "Cortes de pelo, tintes, mechas, peinados para eventos y tratamientos capilares. Estilistas profesionales con cita previa.",
+   181→   181→    icon: "Scissors",
+   182→   182→    cluster: "bienestar",
+   183→   183→  },
+   184→   184→  {
+   185→   185→    slug: "clases",
+   186→   186→    name: "Clases y formación diversa",
+   187→   187→    shortName: "Clases",
+   188→   188→    description:
+   189→   189→      "Formación en idiomas, informática, cocina, manualidades y más. Academias y profesores verificados en tu zona.",
+   190→   190→    icon: "Pencil",
+   191→   191→    cluster: "educacion",
+   192→   192→  },
+   193→   193→];
+   194→   194→
+   195→   195→// ─── Clusters ───────────────────────────────────────────────────────
+   196→   196→export const clusters: ServiceCluster[] = [
+   197→   197→  {
+   198→   198→    id: "emergencias",
+   199→   199→    name: "Emergencias 24h",
+   200→   200→    description:
+   201→   201→      "Servicios de intervención urgente disponibles las 24 horas del día. Profesionales que acuden a tu domicilio en menos de 60 minutos para resolver averías y emergencias.",
+   202→   202→    icon: "ShieldAlert",
+   203→   203→    services: services.filter((s) => s.cluster === "emergencias"),
+   204→   204→  },
+   205→   205→  {
+   206→   206→    id: "salud",
+   207→   207→    name: "Salud y Cuidado",
+   208→   208→    description:
+   209→   209→      "Profesionales de la salud, el bienestar y la atención personal. Centros y especialistas verificados que garantizan la mejor atención para ti y los tuyos.",
+   210→   210→    icon: "HeartPulse",
+   211→   211→    services: services.filter((s) => s.cluster === "salud"),
+   212→   212→  },
+   213→   213→  {
+   214→   214→    id: "reformas",
+   215→   215→    name: "Reformas y Hogar",
+   216→   216→    description:
+   217→   217→      "Especialistas en mejora, reparación y mantenimiento del hogar. Desde pequeñas reparaciones hasta reformas integrales con presupuesto sin compromiso.",
+   218→   218→    icon: "Home",
+   219→   219→    services: services.filter((s) => s.cluster === "reformas"),
+   220→   220→  },
+   221→   221→  {
+   222→   222→    id: "educacion",
+   223→   223→    name: "Educación y Formación",
+   224→   224→    description:
+   225→   225→      "Profesores y academias de confianza para todas las etapas formativas. Clases particulares, preparación de exámenes y formación continua.",
+   226→   226→    icon: "GraduationCap",
+   227→   227→    services: services.filter((s) => s.cluster === "educacion"),
+   228→   228→  },
+   229→   229→  {
+   230→   230→    id: "bienestar",
+   231→   231→    name: "Bienestar Personal",
+   232→   232→    description:
+   233→   233→      "Cuidado personal, estética y bienestar. Profesionales que te ayudan a sentirte mejor tanto por dentro como por fuera.",
+   234→   234→    icon: "Sparkles",
+   235→   235→    services: services.filter((s) => s.cluster === "bienestar"),
+   236→   236→  },
+   237→   237→];
+   238→   238→
+   239→   239→// ─── Locations ──────────────────────────────────────────────────────
+   240→   240→export const locations: Location[] = [
+   241→   241→  // Comunidad Valenciana
+   242→   242→  { name: "Castellón de la Plana", slug: "castellon", province: "Castellón", community: "Comunidad Valenciana", isCapital: true },
+   243→   243→  { name: "València", slug: "valencia", province: "València", community: "Comunidad Valenciana", isCapital: true },
+   244→   244→  { name: "Sagunto", slug: "sagunto", province: "València", community: "Comunidad Valenciana" },
+   245→   245→  { name: "Villarreal", slug: "villarreal", province: "Castellón", community: "Comunidad Valenciana" },
+   246→   246→  { name: "Elche", slug: "elche", province: "Alacant", community: "Comunidad Valenciana" },
+   247→   247→  // Cataluña
+   248→   248→  { name: "Terrassa", slug: "terrassa", province: "Barcelona", community: "Cataluña" },
+   249→   249→  { name: "Sabadell", slug: "sabadell", province: "Barcelona", community: "Cataluña" },
+   250→   250→  { name: "Badalona", slug: "badalona", province: "Barcelona", community: "Cataluña" },
+   251→   251→  { name: "Girona", slug: "girona", province: "Girona", community: "Cataluña", isCapital: true },
+   252→   252→  // Andalucía
+   253→   253→  { name: "Granada", slug: "granada", province: "Granada", community: "Andalucía", isCapital: true },
+   254→   254→  { name: "Marbella", slug: "marbella", province: "Málaga", community: "Andalucía" },
+   255→   255→  { name: "Huelva", slug: "huelva", province: "Huelva", community: "Andalucía", isCapital: true },
+   256→   256→  { name: "Jaén", slug: "jaen", province: "Jaén", community: "Andalucía", isCapital: true },
+   257→   257→  { name: "Cádiz", slug: "cadiz", province: "Cádiz", community: "Andalucía", isCapital: true },
+   258→   258→  // Castilla-La Mancha
+   259→   259→  { name: "Cuenca", slug: "cuenca", province: "Cuenca", community: "Castilla-La Mancha", isCapital: true },
+   260→   260→  { name: "Albacete", slug: "albacete", province: "Albacete", community: "Castilla-La Mancha", isCapital: true },
+   261→   261→  { name: "Toledo", slug: "toledo", province: "Toledo", community: "Castilla-La Mancha", isCapital: true },
+   262→   262→  { name: "Ciudad Real", slug: "ciudad-real", province: "Ciudad Real", community: "Castilla-La Mancha", isCapital: true },
+   263→   263→  // Castilla y León
+   264→   264→  { name: "Soria", slug: "soria", province: "Soria", community: "Castilla y León", isCapital: true },
+   265→   265→  { name: "Burgos", slug: "burgos", province: "Burgos", community: "Castilla y León", isCapital: true },
+   266→   266→  { name: "Zamora", slug: "zamora", province: "Zamora", community: "Castilla y León", isCapital: true },
+   267→   267→  // Aragón
+   268→   268→  { name: "Teruel", slug: "teruel", province: "Teruel", community: "Aragón", isCapital: true },
+   269→   269→  // Cantabria
+   270→   270→  { name: "Santander", slug: "santander", province: "Cantabria", community: "Cantabria", isCapital: true },
+   271→   271→  // Comunidad de Madrid
+   272→   272→  { name: "Alcorcón", slug: "alcorcon", province: "Madrid", community: "Comunidad de Madrid" },
+   273→   273→  // Islas Baleares
+   274→   274→  { name: "Ibiza", slug: "ibiza", province: "Illes Balears", community: "Islas Baleares" },
+   275→   275→  { name: "Palma de Mallorca", slug: "mallorca", province: "Illes Balears", community: "Islas Baleares", isCapital: true },
+   276→   276→  // La Rioja
+   277→   277→  { name: "Logroño", slug: "logrono", province: "La Rioja", community: "La Rioja", isCapital: true },
+   278→   278→  // Galicia
+   279→   279→  { name: "Ourense", slug: "ourense", province: "Ourense", community: "Galicia", isCapital: true },
+   280→   280→  { name: "Santiago de Compostela", slug: "santiago-compostela", province: "A Coruña", community: "Galicia", isCapital: true },
+   281→   281→  // Extremadura
+   282→   282→  { name: "Cáceres", slug: "caceres", province: "Cáceres", community: "Extremadura", isCapital: true },
+   283→   283→];
+   284→   284→
+   285→   285→// ─── Province Groups ────────────────────────────────────────────────
+   286→   286→export const provinceGroups: ProvinceGroup[] = [
+   287→   287→  {
+   288→   288→    name: "Comunidad Valenciana",
+   289→   289→    slug: "comunidad-valenciana",
+   290→   290→    community: "Comunidad Valenciana",
+   291→   291→    locations: locations.filter((l) => l.community === "Comunidad Valenciana"),
+   292→   292→    topServices: ["cerrajeros", "fontaneria", "pintores"],
+   293→   293→  },
+   294→   294→  {
+   295→   295→    name: "Cataluña",
+   296→   296→    slug: "cataluna",
+   297→   297→    community: "Cataluña",
+   298→   298→    locations: locations.filter((l) => l.community === "Cataluña"),
+   299→   299→    topServices: ["electricistas", "clases-particulares", "dentistas"],
+   300→   300→  },
+   301→   301→  {
+   302→   302→    name: "Andalucía",
+   303→   303→    slug: "andalucia",
+   304→   304→    community: "Andalucía",
+   305→   305→    locations: locations.filter((l) => l.community === "Andalucía"),
+   306→   306→    topServices: ["cerrajeros", "albanileria", "cuidado-mayores"],
+   307→   307→  },
+   308→   308→  {
+   309→   309→    name: "Castilla-La Mancha",
+   310→   310→    slug: "castilla-la-mancha",
+   311→   311→    community: "Castilla-La Mancha",
+   312→   312→    locations: locations.filter((l) => l.community === "Castilla-La Mancha"),
+   313→   313→    topServices: ["fontaneria", "reparaciones", "entrenadores"],
+   314→   314→  },
+   315→   315→  {
+   316→   316→    name: "Castilla y León",
+   317→   317→    slug: "castilla-y-leon",
+   318→   318→    community: "Castilla y León",
+   319→   319→    locations: locations.filter((l) => l.community === "Castilla y León"),
+   320→   320→    topServices: ["cerrajeros", "cuidado-mayores", "peluquerias"],
+   321→   321→  },
+   322→   322→  {
+   323→   323→    name: "Aragón",
+   324→   324→    slug: "aragon",
+   325→   325→    community: "Aragón",
+   326→   326→    locations: locations.filter((l) => l.community === "Aragón"),
+   327→   327→    topServices: ["electricistas", "albanileria", "fontaneria"],
+   328→   328→  },
+   329→   329→  {
+   330→   330→    name: "Cantabria",
+   331→   331→    slug: "cantabria",
+   332→   332→    community: "Cantabria",
+   333→   333→    locations: locations.filter((l) => l.community === "Cantabria"),
+   334→   334→    topServices: ["cerrajeros", "pintores", "dentistas"],
+   335→   335→  },
+   336→   336→  {
+   337→   337→    name: "Comunidad de Madrid",
+   338→   338→    slug: "comunidad-de-madrid",
+   339→   339→    community: "Comunidad de Madrid",
+   340→   340→    locations: locations.filter((l) => l.community === "Comunidad de Madrid"),
+   341→   341→    topServices: ["cerrajeros", "electricistas", "clases-particulares"],
+   342→   342→  },
+   343→   343→  {
+   344→   344→    name: "Islas Baleares",
+   345→   345→    slug: "islas-baleares",
+   346→   346→    community: "Islas Baleares",
+   347→   347→    locations: locations.filter((l) => l.community === "Islas Baleares"),
+   348→   348→    topServices: ["reparaciones", "peluquerias", "estetica"],
+   349→   349→  },
+   350→   350→  {
+   351→   351→    name: "La Rioja",
+   352→   352→    slug: "la-rioja",
+   353→   353→    community: "La Rioja",
+   354→   354→    locations: locations.filter((l) => l.community === "La Rioja"),
+   355→   355→    topServices: ["fontaneria", "albanileria", "entrenadores"],
+   356→   356→  },
+   357→   357→  {
+   358→   358→    name: "Galicia",
+   359→   359→    slug: "galicia",
+   360→   360→    community: "Galicia",
+   361→   361→    locations: locations.filter((l) => l.community === "Galicia"),
+   362→   362→    topServices: ["cerrajeros", "cuidado-mayores", "reparaciones"],
+   363→   363→  },
+   364→   364→  {
+   365→   365→    name: "Extremadura",
+   366→   366→    slug: "extremadura",
+   367→   367→    community: "Extremadura",
+   368→   368→    locations: locations.filter((l) => l.community === "Extremadura"),
+   369→   369→    topServices: ["electricistas", "fontaneria", "clases-particulares"],
+   370→   370→  },
+   371→   371→];
+   372→   372→
+   373→   373→// ─── Top Locations (Home page featured) ────────────────────────────
+   374→   374→export const topLocations = [
+   375→   375→  { name: "Castellón", slug: "castellon" },
+   376→   376→  { name: "València", slug: "valencia" },
+   377→   377→  { name: "Granada", slug: "granada" },
+   378→   378→  { name: "Madrid", slug: "alcorcon" },
+   379→   379→  { name: "Barcelona", slug: "badalona" },
+   380→   380→  { name: "Marbella", slug: "marbella" },
+   381→   381→  { name: "Santander", slug: "santander" },
+   382→   382→  { name: "Sevilla", slug: "huelva" },
+   383→   383→  { name: "Baleares", slug: "mallorca" },
+   384→   384→  { name: "Toledo", slug: "toledo" },
+   385→   385→  { name: "Santiago", slug: "santiago-compostela" },
+   386→   386→  { name: "Logroño", slug: "logrono" },
+   387→   387→];
+   388→   388→
+   389→   389→// ─── Featured Services (Home page) ──────────────────────────────────
+   390→   390→export const featuredServices = services.slice(0, 8);
+   391→   391→
+   392→   392→// ─── Helper: Get top 5 cities for a service ─────────────────────────
+   393→   393→export function getTopCitiesForService(serviceSlug: string): { name: string; slug: string; anchorText: string }[] {
+   394→   394→  const topCitySlugs = [
+   395→   395→    "castellon", "valencia", "granada", "badalona", "santander",
+   396→   396→    "alcorcon", "toledo", "sabadell", "girona", "marbella",
+   397→   397→    "albacete", "cadiz", "burgos", "logrono", "ourense",
+   398→   398→  ];
+   399→   399→
+   400→   400→  const service = services.find((s) => s.slug === serviceSlug);
+   401→   401→  if (!service) return [];
+   402→   402→
+   403→   403→  const matchedCities = locations.filter((l) =>
+   404→   404→    topCitySlugs.includes(l.slug)
+   405→   405→  );
+   406→   406→
+   407→   407→  return matchedCities.slice(0, 5).map((city) => ({
+   408→   408→    name: city.name,
+   409→   409→    slug: city.slug,
+   410→   410→    anchorText: `${service.shortName} en ${city.name}`,
+   411→   411→  }));
+   412→   412→}
+   413→   413→
+   414→   414→// ─── Service name lookup by slug ────────────────────────────────────
+   415→   415→export function getServiceBySlug(slug: string): Service | undefined {
+   416→   416→  return services.find((s) => s.slug === slug);
+   417→   417→}
+   418→   418→
+   419→   419→// ─── Location lookup by slug ────────────────────────────────────────
+   420→   420→export function getLocationBySlug(slug: string): Location | undefined {
+   421→   421→  return locations.find((l) => l.slug === slug);
+   422→   422→}
+   423→   423→
+   424→   424→// ─── Get locations in the same community (excluding current) ───────
+   425→   425→export function getNearbyLocations(locationSlug: string, limit = 8): Location[] {
+   426→   426→  const current = locations.find((l) => l.slug === locationSlug);
+   427→   427→  if (!current) return locations.slice(0, limit);
+   428→   428→  return locations
+   429→   429→    .filter((l) => l.community === current.community && l.slug !== locationSlug)
+   430→   430→    .slice(0, limit);
+   431→   431→}
+   432→   432→
+   433→   433→// ─── Get services in the same cluster (excluding current) ──────────
+   434→   434→export function getRelatedServices(serviceSlug: string, limit = 6): Service[] {
+   435→   435→  const current = services.find((s) => s.slug === serviceSlug);
+   436→   436→  if (!current) return services.slice(0, limit);
+   437→   437→  return services
+   438→   438→    .filter((s) => s.cluster === current.cluster && s.slug !== serviceSlug)
+   439→   439→    .slice(0, limit);
+   440→   440→}
+   441→   441→
+   442→   442→// ─── Get locations where a service is available ────────────────────
+   443→   443→export function getLocationsForService(serviceSlug: string, excludeSlug?: string, limit = 10): Location[] {
+   444→   444→  const prioritySlugs = [
+   445→   445→    "castellon", "valencia", "granada", "badalona", "santander",
+   446→   446→    "alcorcon", "toledo", "sabadell", "girona", "marbella",
+   447→   447→    "albacete", "cadiz", "burgos", "logrono", "ourense",
+   448→   448→    "santiago-compostela", "caceres", "teruel", "mallorca", "ibiza",
+   449→   449→    "elche", "villarreal", "sagunto", "terrassa", "jaen",
+   450→   450→    "huelva", "cuenca", "ciudad-real", "soria", "zamora",
+   451→   451→  ];
+   452→   452→  return locations
+   453→   453→    .filter((l) => l.slug !== excludeSlug)
+   454→   454→    .sort((a, b) => {
+   455→   455→      const aIdx = prioritySlugs.indexOf(a.slug);
+   456→   456→      const bIdx = prioritySlugs.indexOf(b.slug);
+   457→   457→      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+   458→   458→    })
+   459→   459→    .slice(0, limit);
+   460→   460→}
+   461→   461→
+   462→   462→// ─── FAQ templates per service type ────────────────────────────────
+   463→   463→const faqTemplates: Record<string, { q: string; a: string }[]> = {
+   464→   464→  cerrajeros: [
+   465→   465→    { q: "¿Cuánto cuesta un cerrajero en {city}?", a: "El precio de un cerrajero en {city} varía según el tipo de intervención. Una apertura de puerta estándar suele oscilar entre 50€ y 120€, mientras que el cambio de cerradura puede costar entre 80€ y 200€. En EMBES puedes solicitar presupuestos gratuitos y comparar precios de cerrajeros verificados en {city} sin compromiso." },
+   466→   466→    { q: "¿Hay cerrajeros de urgencia 24 horas en {city}?", a: "Sí, en EMBES disponemos de cerrajeros de urgencia disponibles las 24 horas del día, los 7 días de la semana en {city}. Nuestros profesionales verificados pueden acudir a tu domicilio en menos de 60 minutos para resolver cualquier emergencia de cerrajería." },
+   467→   467→    { q: "¿Los cerrajeros de EMBES en {city} están verificados?", a: "Absolutamente. Todos los cerrajeros que aparecen en EMBES en {city} han superado un riguroso proceso de verificación que incluye comprobación de titulaciones, seguro de responsabilidad civil, experiencia mínima acreditada y valoraciones reales de clientes anteriores." },
+   468→   468→    { q: "¿Qué servicios de cerrajería ofrecen en {city}?", a: "Los cerrajeros verificados de EMBES en {city} ofrecen: apertura de puertas, cambio de cerraduras, instalación de cilindros de seguridad, blindajes de puertas, instalación de cerraduras electrónicas, apertura de cofres y cajas fuertes, y reparación de persianas y toldos." },
+   469→   469→  ],
+   470→   470→  electricistas: [
+   471→   471→    { q: "¿Cuánto cobra un electricista en {city}?", a: "El coste de un electricista en {city} depende del trabajo a realizar. Una reparación básica puede costar entre 40€ y 100€, una instalación eléctrica completa entre 500€ y 2000€, y la certificación eléctrica entre 100€ y 300€. Solicita presupuestos sin compromiso en EMBES." },
+   472→   472→    { q: "¿Atienden urgencias eléctricas en {city}?", a: "Sí, los electricistas de EMBES en {city} ofrecen servicio de urgencias eléctricas. Ante un cortocircuito, fallo en el cuadro eléctrico o cualquier avería que requiera intervención inmediata, puedes contactar con profesionales verificados que acudirán a tu domicilio con rapidez." },
+   473→   473→    { q: "¿Los electricistas de EMBES en {city} tienen certificación?", a: "Todos los electricistas de EMBES en {city} cuentan con la certificación legalmente requerida para realizar instalaciones y reparaciones eléctricas. Verificamos su titulación, seguro de responsabilidad civil y experiencia profesional antes de incluirlos en nuestro directorio." },
+   474→   474→    { q: "¿Qué servicios eléctricos se ofrecen en {city}?", a: "Los electricistas verificados en {city} ofrecen: instalación y reparación de cuadros eléctricos, cableado, iluminación, enchufes y conmutadores, eficiencia energética, instalación de placas solares, certificación de instalaciones, detector de fugas eléctricas y domótica." },
+   475→   475→  ],
+   476→   476→  fontaneria: [
+   477→   477→    { q: "¿Cuánto cuesta un fontanero en {city}?", a: "El precio de un fontanero en {city} varía según la intervención. Un desatasco suele costar entre 60€ y 150€, la reparación de una fuga entre 80€ y 200€, y la instalación de caldera entre 600€ y 2000€. Compara presupuestos gratuitos de fontaneros verificados en EMBES." },
+   478→   478→    { q: "¿Atienden emergencias de fontanería en {city}?", a: "Sí, EMBES dispone de fontaneros de emergencia en {city} disponibles 24 horas. Si tienes una rotura de tubería, un desbordamiento o cualquier avería de fontanería que requiera atención urgente, nuestros profesionales verificados acudirán rápidamente a tu domicilio." },
+   479→   479→    { q: "¿Los fontaneros de EMBES en {city} ofrecen garantía?", a: "Todos los fontaneros de EMBES en {city} ofrecen garantía por escrito en sus trabajos. Además, cada profesional ha sido verificado: comprobamos su experiencia, titulaciones, seguro de responsabilidad civil y las valoraciones de sus clientes anteriores." },
+   480→   480→    { q: "¿Qué servicios de fontanería hay en {city}?", a: "Los fontaneros verificados en {city} ofrecen: reparación de fugas, desatascos, instalación de tuberías, reparación e instalación de calderas, sistemas de calefacción, grifería, saneamiento, wc, bañeras y duchas, y detección de humedades." },
+   481→   481→  ],
+   482→   482→  albanileria: [
+   483→   483→    { q: "¿Cuánto cuesta un albañil en {city}?", a: "El precio de un albañil en {city} depende del tipo de obra. Una pequeña reparación puede costar entre 50€ y 200€, una reforma de baño entre 2000€ y 8000€, y una reforma integral entre 10.000€ y 40.000€. Solicita presupuestos sin compromiso en EMBES." },
+   484→   484→    { q: "¿Los albañiles de EMBES en {city} hacen presupuestos sin compromiso?", a: "Sí, todos los albañiles de EMBES en {city} ofrecen presupuestos gratuitos y sin compromiso. Puedes solicitar varios presupuestos, comparar precios y valoraciones, y elegir al profesional que mejor se adapte a tu proyecto y presupuesto." },
+   485→   485→    { q: "¿Qué tipo de reformas hacen los albañiles en {city}?", a: "Los albañiles verificados en {city} realizan: reformas integrales, reformas de cocina y baño, tabiquería, revocos, solados, enfoscados, aplacados, derribos, construcción de muros, reparaciones estructurales y obras menores." },
+   486→   486→    { q: "¿Los albañiles de EMBES en {city} están verificados?", a: "Sí. Cada albañil de EMBES en {city} ha pasado un proceso de verificación que incluye comprobación de experiencia profesional, seguro de responsabilidad civil, referencias de trabajos anteriores y valoraciones reales de clientes." },
+   487→   487→  ],
+   488→   488→  pintores: [
+   489→   489→    { q: "¿Cuánto cobra un pintor en {city}?", a: "El precio de un pintor en {city} depende de la superficie y el tipo de trabajo. Pintar una habitación estándar cuesta entre 200€ y 600€, una casa completa entre 1500€ y 4000€, y pintar una fachada entre 800€ y 3000€. Solicita presupuestos en EMBES." },
+   490→   490→    { q: "¿Los pintores de EMBES en {city} trabajan con materiales de calidad?", a: "Los pintores verificados de EMBES en {city} utilizan materiales de primera calidad de marcas reconocidas. Además, te asesorarán sobre el tipo de pintura más adecuado para cada superficie y te ofrecerán acabados profesionales duraderos." },
+   491→   491→    { q: "¿Puedo solicitar un presupuesto de pintura en {city} sin compromiso?", a: "Por supuesto. En EMBES puedes solicitar presupuestos gratuitos de pintura en {city} sin ningún compromiso. Los profesionales acudirán a tu domicilio para evaluar el trabajo y ofrecerte un presupuesto detallado y personalizado." },
+   492→   492→    { q: "¿Qué servicios de pintura ofrecen en {city}?", a: "Los pintores de EMBES en {city} ofrecen: pintura interior y exterior, empapelados, tratamientos decorativos, lacas y esmaltes, pintura de fachadas, techos, suelos y revestimientos, y restauración de muebles." },
+   493→   493→  ],
+   494→   494→  carpinteros: [
+   495→   495→    { q: "¿Cuánto cuesta un carpintero en {city}?", a: "El precio de un carpintero en {city} varía según el trabajo. Un mueble a medida puede costar entre 300€ y 3000€, la instalación de una puerta entre 150€ y 500€, y armarios empotrados entre 800€ y 3000€. Solicita presupuestos sin compromiso en EMBES." },
+   496→   496→    { q: "¿Hacen muebles a medida los carpinteros en {city}?", a: "Sí, los carpinteros verificados de EMBES en {city} se especializan en carpintería a medida. Pueden diseñar y fabricar muebles personalizados, armarios, estanterías, mesas y cualquier elemento de madera o PVC adaptado a tus necesidades y espacios." },
+   497→   497→    { q: "¿Los carpinteros de EMBES en {city} trabajan con madera y PVC?", a: "Sí, los carpinteros de EMBES en {city} trabajan tanto con madera natural como con PVC y otros materiales compuestos. Podrás elegir el material que mejor se adapte a tus necesidades, presupuesto y estilo de tu hogar." },
+   498→   498→    { q: "¿Qué servicios de carpintería ofrecen en {city}?", a: "Los carpinteros verificados en {city} ofrecen: muebles a medida, puertas y ventanas, armarios empotrados, estanterías, restauración de muebles, suelos de madera, persianas de madera y trabajos de ebanistería." },
+   499→   499→  ],
+   500→   500→  reparaciones: [
+   501→   501→    { q: "¿Cuánto cuestan las reparaciones del hogar en {city}?", a: "El precio de una reparación del hogar en {city} depende del tipo de avería. Las reparaciones menores suelen costar entre 30€ y 100€, mientras que las más complejas pueden superar los 200€. En EMBES puedes comparar presupuestos de profesionales verificados sin compromiso." },
+   502→   502→    { q: "¿Qué tipo de reparaciones pueden hacer en {city}?", a: "Los reparadores verificados de EMBES en {city} realizan: reparación de electrodomésticos, montaje de muebles, reparación de persianas, puertas y ventanas, pequeños arreglos de fontanería y electricidad, instalación de estanterías, y mantenimiento general del hogar." },
+   503→   503→    { q: "¿Los reparadores de EMBES en {city} tienen experiencia?", a: "Todos los profesionales de reparaciones de EMBES en {city} han sido verificados. Comprobamos su experiencia profesional, seguros de responsabilidad civil, referencias y valoraciones reales de clientes anteriores para garantizar la calidad del servicio." },
+   504→   504→    { q: "¿Puedo solicitar una reparación urgente en {city}?", a: "Sí, EMBES ofrece servicio de reparaciones urgentes en {city}. Para averías que no pueden esperar, nuestros profesionales verificados pueden acudir a tu domicilio con la mayor brevedad posible para resolver el problema." },
+   505→   505→  ],
+   506→   506→  "cuidado-mayores": [
+   507→   507→    { q: "¿Cuánto cuesta el cuidado de mayores en {city}?", a: "El precio del cuidado de personas mayores en {city} varía según el tipo de atención y las horas necesarias. El cuidado domiciliario por hora suele oscilar entre 12€ y 25€. En EMBES puedes comparar perfiles de cuidadores verificados y solicitar presupuestos personalizados." },
+   508→   508→    { q: "¿Los cuidadores de EMBES en {city} tienen formación?", a: "Sí, todos los cuidadores de EMBES en {city} cuentan con formación específica en atención a personas mayores. Verificamos sus titulaciones, experiencia, referencias y realizamos comprobaciones periódicas para garantizar la calidad de la atención." },
+   509→   509→    { q: "¿Ofrecen atención domiciliaria en {city}?", a: "Sí, EMBES pone a tu disposición cuidadores para atención domiciliaria en {city}. Los servicios incluyen ayuda personal, compañía, supervisión de medicación, apoyo en actividades diarias, preparación de comidas y acompañamiento a citas médicas." },
+   510→   510→    { q: "¿Cómo elijo al mejor cuidador en {city}?", a: "En EMBES puedes consultar los perfiles detallados de cada cuidador en {city}, incluyendo su formación, experiencia, especialidades y valoraciones de otros clientes. Puedes solicitar entrevistas previas sin compromiso para encontrar al cuidador ideal." },
+   511→   511→  ],
+   512→   512→  dentistas: [
+   513→   513→    { q: "¿Cuánto cuesta una revisión dental en {city}?", a: "El precio de una revisión dental en {city} varía. Una revisión y limpieza básica cuesta entre 40€ y 80€, un blanqueamiento entre 200€ y 600€, y un implante dental entre 800€ y 2000€. Consulta presupuestos sin compromiso en EMBES." },
+   514→   514→    { q: "¿Los dentistas de EMBES en {city} hacen implantes?", a: "Sí, entre los dentistas verificados de EMBES en {city} encontrarás especialistas en implantes dentales, así como en ortodoncia, endodoncia, periodoncia y estética dental. Cada profesional está verificado con su número de colegiación y especialidad." },
+   515→   515→    { q: "¿Puedo pedir cita con un dentista en {city}?", a: "Sí, a través de EMBES puedes solicitar cita con dentistas verificados en {city}. Consulta los perfiles de cada profesional, sus especialidades, horarios y valoraciones de pacientes, y elige el dentista que mejor se adapte a tus necesidades." },
+   516→   516→    { q: "¿Qué tratamientos dentales ofrecen en {city}?", a: "Los dentistas de EMBES en {city} ofrecen: revisiones y limpiezas, implantes, ortodoncia, blanqueamiento, carillas, endodoncia, extracciones, tratamientos de encías, prótesis dentales y odontopediatría." },
+   517→   517→  ],
+   518→   518→  estetica: [
+   519→   519→    { q: "¿Cuánto cuestan los tratamientos de estética en {city}?", a: "El precio de los tratamientos de estética en {city} varía según el tipo de tratamiento. Una facial básica cuesta entre 40€ y 80€, tratamientos corporales entre 60€ y 150€, y paquetes completos desde 150€. Consulta precios en los perfiles de EMBES." },
+   520→   520→    { q: "¿Los centros de estética de EMBES en {city} están verificados?", a: "Sí, todos los centros de estética y belleza de EMBES en {city} han sido verificados. Comprobamos sus licencias, la formación de sus profesionales, las condiciones de sus instalaciones y las valoraciones reales de sus clientes." },
+   521→   521→    { q: "¿Ofrecen tratamientos faciales y corporales en {city}?", a: "Los centros de estética de EMBES en {city} ofrecen una amplia gama de tratamientos: faciales (limpieza, hidratación, anti-edad), corporales (masajes, reducción de medidas, drenaje linfático), depilación, manicura, pedicura y tratamientos capilares." },
+   522→   522→    { q: "¿Puedo solicitar cita en un centro de estética en {city}?", a: "Sí, en EMBES puedes consultar los perfiles de los centros de estética verificados en {city}, ver sus tratamientos, horarios y valoraciones, y solicitar cita directamente. Todo sin compromiso y con la garantía de profesionales verificados." },
+   523→   523→  ],
+   524→   524→  "clases-particulares": [
+   525→   525→    { q: "¿Cuánto cuesta un profesor particular en {city}?", a: "El precio de un profesor particular en {city} varía según la asignatura y el nivel. Las clases de primaria y ESO suelen costar entre 15€ y 25€/hora, bachillerato entre 20€ y 35€/hora, y universidad entre 25€ y 50€/hora. Compara en EMBES." },
+   526→   526→    { q: "¿Para qué asignaturas hay clases particulares en {city}?", a: "En EMBES encontrarás profesores particulares en {city} para todas las asignaturas: matemáticas, lengua, inglés, ciencias, física, química, historia, filosofía, economía y muchas más. También hay profesores para preparación de exámenes y pruebas de acceso." },
+   527→   527→    { q: "¿Los profesores de EMBES en {city} tienen experiencia?", a: "Todos los profesores de EMBES en {city} han sido verificados. Comprobamos su formación académica, experiencia docente, referencias y las valoraciones de sus alumnos anteriores para asegurar la calidad de la enseñanza." },
+   528→   528→    { q: "¿Puedo elegir entre clases presenciales y online en {city}?", a: "Sí, muchos profesores de EMBES en {city} ofrecen tanto clases presenciales a domicilio como clases online. Al consultar cada perfil podrás ver las opciones disponibles, horarios y modalidad de enseñanza de cada profesor." },
+   529→   529→  ],
+   530→   530→  entrenadores: [
+   531→   531→    { q: "¿Cuánto cuesta un entrenador personal en {city}?", a: "El precio de un entrenador personal en {city} oscila entre 30€ y 70€ por sesión individual, dependiendo de la experiencia del entrenador y el tipo de entrenamiento. También existen planes mensuales con descuento. Consulta perfiles y precios en EMBES." },
+   532→   532→    { q: "¿Los entrenadores de EMBES en {city} están certificados?", a: "Sí, todos los entrenadores personales de EMBES en {city} cuentan con certificación profesional verificada. Comprobamos sus titulaciones en ciencias del deporte, especializaciones y seguro de responsabilidad civil." },
+   533→   533→    { q: "¿Puedo entrenar en casa con un entrenador en {city}?", a: "Sí, muchos entrenadores de EMBES en {city} ofrecen servicio a domicilio. También puedes encontrar entrenadores en gimnasios, parques o centros deportivos. Consulta cada perfil para ver las opciones de ubicación disponibles." },
+   534→   534→    { q: "¿Qué tipo de entrenamiento ofrecen en {city}?", a: "Los entrenadores de EMBES en {city} ofrecen: preparación física general, pérdida de peso, hipertrofia, entrenamiento funcional, rehabilitación, pilates, yoga, planes nutricionales personalizados y entrenamiento para deportes específicos." },
+   535→   535→  ],
+   536→   536→  "carreras-universitarias": [
+   537→   537→    { q: "¿Cuánto cuesta la preparación universitaria en {city}?", a: "El precio de la preparación para el acceso a la universidad en {city} varía según la modalidad. Las clases particulares oscilan entre 25€ y 50€/hora, y los cursos intensivos completos entre 500€ y 2000€. Compara opciones en EMBES." },
+   538→   538→    { q: "¿Preparan para la PCE los profesores en {city}?", a: "Sí, en EMBES encontrarás preparadores especializados en la PCE (Pruebas de Competencias Específicas) en {city}. También ofrecen preparación para selectividad, pruebas de acceso a grados mayores de 25/45 años y orientación vocacional." },
+   539→   539→    { q: "¿Los preparadores de EMBES en {city} tienen experiencia?", a: "Todos los preparadores universitarios de EMBES en {city} han sido verificados. Comprobamos su experiencia en la preparación de estudiantes, sus tasas de éxito en exámenes de acceso y las valoraciones de sus alumnos anteriores." },
+   540→   540→    { q: "¿Ofrecen orientación vocacional en {city}?", a: "Sí, muchos preparadores de EMBES en {city} incluyen orientación vocacional en sus servicios. Te ayudarán a elegir la carrera y universidad que mejor se adapte a tu perfil, intereses y objetivos profesionales." },
+   541→   541→  ],
+   542→   542→  musica: [
+   543→   543→    { q: "¿Cuánto cuesta una clase de música en {city}?", a: "El precio de una clase de música en {city} varía según el instrumento y el nivel. Las clases individuales suelen costar entre 20€ y 40€/hora, y las colectivas entre 10€ y 20€/hora. Consulta perfiles y precios de profesores verificados en EMBES." },
+   544→   544→    { q: "¿Qué instrumentos se enseñan en {city}?", a: "En EMBES encontrarás profesores de música en {city} para: piano, guitarra, violín, batería, canto, batería, bajo, ukulele, saxofón, flauta y teoría musical. También hay profesores especializados en diferentes estilos musicales." },
+   545→   545→    { q: "¿Los profesores de música de EMBES en {city} dan clases individuales?", a: "Sí, la mayoría de profesores de música de EMBES en {city} ofrecen clases individuales personalizadas. También puedes encontrar opciones de clases colectivas, tanto presenciales como online, para todas las edades y niveles." },
+   546→   546→    { q: "¿Puedo empezar a aprender música siendo adulto en {city}?", a: "Por supuesto. Los profesores de música de EMBES en {city} imparten clases para todas las edades, incluyendo principiantes adultos. Muchos profesores tienen experiencia específica en la enseñanza a adultos y adaptan su metodología a tu ritmo de aprendizaje." },
+   547→   547→  ],
+   548→   548→  peluquerias: [
+   549→   549→    { q: "¿Cuánto cuesta un corte de pelo en {city}?", a: "El precio de un corte de pelo en {city} varía según el establecimiento y el tipo de corte. Un corte estándar cuesta entre 12€ y 35€, un tinte entre 40€ y 100€, y mechas entre 50€ y 150€. Consulta precios en los perfiles de EMBES." },
+   550→   550→    { q: "¿Las peluquerías de EMBES en {city} necesitan cita previa?", a: "Depende de cada establecimiento. En EMBES puedes consultar los perfiles de las peluquerías de {city} para ver si necesitan cita previa, sus horarios de apertura, servicios disponibles y valoraciones de otros clientes." },
+   551→   551→    { q: "¿Hacen tintes y mechas las peluquerías en {city}?", a: "Sí, las peluquerías de EMBES en {city} ofrecen una amplia gama de servicios: cortes de pelo, tintes, mechas, balayage, peinados para eventos, tratamientos capilares, extensiones, manicura, pedicura y tratamientos de belleza." },
+   552→   552→    { q: "¿Las peluquerías de EMBES en {city} están verificadas?", a: "Sí, todas las peluquerías de EMBES en {city} han sido verificadas. Comprobamos sus licencias, la formación de sus estilistas, la calidad de los productos que utilizan y las valoraciones reales de sus clientes." },
+   553→   553→  ],
+   554→   554→  clases: [
+   555→   555→    { q: "¿Qué clases y formación hay disponible en {city}?", a: "En EMBES encontrarás una amplia oferta de clases y formación en {city}: idiomas (inglés, francés, alemán), informática, cocina, manualidades, fotografía, diseño, marketing y muchas más disciplinas. Consulta todos los profesores y academias verificadas." },
+   556→   556→    { q: "¿Los profesores de EMBES en {city} están verificados?", a: "Sí, todos los profesores y academias de EMBES en {city} han sido verificados. Comprobamos su formación, experiencia, licencias y las valoraciones de sus alumnos para garantizar la calidad de la enseñanza." },
+   557→   557→    { q: "¿Puedo solicitar clases a domicilio en {city}?", a: "Sí, muchos profesores de EMBES en {city} ofrecen clases a domicilio. Al consultar cada perfil podrás ver las modalidades disponibles (presencial, online, a domicilio), los horarios y las asignaturas o materias que imparten." },
+   558→   558→    { q: "¿Cuánto cuesta una clase particular en {city}?", a: "El precio de las clases particulares en {city} varía según la materia y el nivel. Las clases de idiomas suelen costar entre 15€ y 30€/hora, informática entre 20€ y 40€/hora, y formación especializada entre 25€ y 50€/hora. Compara en EMBES." },
+   559→   559→  ],
+   560→   560→};
+   561→   561→
+   562→   562→// ─── Get FAQs for a service-location combination ───────────────────
+   563→   563→export function getFAQs(serviceSlug: string, cityName: string): FAQ[] {
+   564→   564→  const templates = faqTemplates[serviceSlug];
+   565→   565→  if (!templates) return [];
+   566→   566→  return templates.map((t) => ({
+   567→   567→    question: t.q.replace(/\{city\}/g, cityName),
+   568→   568→    answer: t.a.replace(/\{city\}/g, cityName),
+   569→   569→  }));
+   570→   570→}
+   571→   571→
+   572→   572→// ─── Generate unique meta description for service×location ──────────
+   573→   573→export function getMetaDescription(service: Service, location: Location): string {
+   574→   574→  return `${service.shortName} verificados en ${location.name}. ${service.description} Solicita presupuestos sin compromiso con profesionales de confianza en ${location.province}, ${location.community}. EMBES.`;
+   575→   575→}

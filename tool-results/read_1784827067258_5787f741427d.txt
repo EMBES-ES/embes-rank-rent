@@ -1,0 +1,543 @@
+     1→import {
+     2→  type Service,
+     3→  type Location,
+     4→  services,
+     5→  locations,
+     6→  clusters,
+     7→  provinceGroups,
+     8→} from "@/lib/data";
+     9→
+    10→// ─── Internal helpers ─────────────────────────────────────────────
+    11→
+    12→function getClusterServices(service: Service): Service[] {
+    13→  const cluster = clusters.find((c) => c.id === service.cluster);
+    14→  return cluster ? cluster.services : [];
+    15→}
+    16→
+    17→/** Deterministic pseudo-variation based on slug chars to add subtle uniqueness */
+    18→function locVariation(location: Location): number {
+    19→  let h = 0;
+    20→  for (let i = 0; i < location.slug.length; i++) {
+    21→    h = (h * 31 + location.slug.charCodeAt(i)) | 0;
+    22→  }
+    23→  return Math.abs(h);
+    24→}
+    25→
+    26→/** Pick from an array deterministically based on a seed */
+    27→function pick<T>(arr: T[], seed: number): T {
+    28→  return arr[seed % arr.length];
+    29→}
+    30→
+    31→// ─── 1. generateFAQ ────────────────────────────────────────────────
+    32→
+    33→const emergencyOpenings = [
+    34→  "Los precios de los {s} en {l} dependen del tipo de intervención requerida, pero en EMBES trabajamos siempre con total transparencia.",
+    35→  "En {l}, el coste de {s} varía según la urgencia y la complejidad del trabajo. A través de EMBES puedes comparar presupuestos sin sorpresas.",
+    36→  "Solicitar {s} en {l} a través de EMBES te garantiza conocer el precio antes de aceptar el servicio, sin tarifas ocultas ni recargos imprevistos.",
+    37→];
+    38→
+    39→const reformOpenings = [
+    40→  "El coste de {s} en {l} varía según la envergadura del trabajo, pero en EMBES puedes solicitar varios presupuestos gratuitos para comparar.",
+    41→  "Los {s} de nuestro directorio en {l} ofrecen precios competitivos adaptados a cada tipo de reforma o reparación, sin compromiso inicial.",
+    42→  "En EMBES te conectamos con {s} en {l} que detallan cada partida del presupuesto para que sepas exactamente lo que pagas.",
+    43→];
+    44→
+    45→const healthOpenings = [
+    46→  "En EMBES aplicamos un proceso de selección riguroso para incluir únicamente a profesionales cualificados de {s} en {l}.",
+    47→  "Cada profesional de {s} en {l} que aparece en nuestro directorio ha sido evaluado según criterios de formación, experiencia y referencias.",
+    48→  "Nuestro equipo verifica personally las credenciales de todos los {s} en {l} antes de incorporarlos al directorio de EMBES.",
+    49→];
+    50→
+    51→const educationOpenings = [
+    52→  "Los profesores particulares de EMBES en {l} imparten una amplia variedad de asignaturas que cubren todas las etapas educativas.",
+    53→  "A través de nuestro directorio encontrarás {s} en {l} especializados en materias desde primaria hasta nivel universitario.",
+    54→  "Los {s} disponibles en {l} cubren tanto las asignaturas del currículo oficial como materias complementarias de refuerzo.",
+    55→];
+    56→
+    57→const wellbeingOpenings = [
+    58→  "Las peluquerías verificadas en {l} ofrecen un catálogo completo de servicios capilares para hombre y mujer.",
+    59→  "En nuestro directorio de {l} encontrarás peluquerías que cubren desde cortes básicos hasta tratamientos de coloración avanzada.",
+    60→  "Las peluquerías de EMBES en {l} disponen de servicios de corte, tinte, mechas, alisados y tratamientos capilares especializados.",
+    61→];
+    62→
+    63→function generateFAQ(
+    64→  service: Service,
+    65→  location: Location
+    66→): { question: string; answer: string }[] {
+    67→  const s = service.shortName;
+    68→  const n = location.name;
+    69→  const p = location.province;
+    70→  const v = locVariation(location);
+    71→  const kw = `${s} en ${n}`;
+    72→
+    73→  switch (service.cluster) {
+    74→    case "emergencias":
+    75→      return [
+    76→        {
+    77→          question: `¿Cuánto cuesta ${s.toLowerCase()} en ${n}?`,
+    78→          answer: `${pick(emergencyOpenings, v)} Los {s} en {l} de nuestra red ofrecen tarifas justas ajustadas al mercado de la provincia de ${p}. Puedes solicitar un presupuesto inicial sin compromiso y valorar la relación calidad-precio antes de contratar. Sin costes ocultos ni sorpresas en la factura final de los {s} en ${n}.`
+    79→            .replace(/{s}/g, s.toLowerCase())
+    80→            .replace(/{l}/g, n),
+    81→        },
+    82→        {
+    83→          question: `¿Los ${s.toLowerCase()} de EMBES en ${n} están disponibles 24 horas?`,
+    84→          answer: `Sí, todos los ${s.toLowerCase()} registrados en EMBES para ${n} ofrecen disponibilidad inmediata, incluyendo festivos y madrugadas. El tiempo medio de respuesta en la provincia de ${p} es inferior a una hora. Cuando buscas ${kw}, sabes que contarás con asistencia profesional urgente sin importar el momento del día o la noche.`,
+    85→        },
+    86→        {
+    87→          question: `¿Qué garantía tienen los ${s.toLowerCase()} verificados en ${n}?`,
+    88→          answer: `Los ${s.toLowerCase()} de EMBES en ${n} han superado un proceso de verificación que incluye comprobación de seguros de responsabilidad civil, licencias vigentes y valoraciones reales de clientes en ${p}. Además, todos los trabajos de ${kw} cuentan con garantía escrita sobre los materiales y la mano de obra empleada.`,
+    89→        },
+    90→        {
+    91→          question: `¿Cómo solicito ${s.toLowerCase()} en ${n} a través de EMBES?`,
+    92→          answer: `Solicitar ${kw} es sencillo: introduce tu ubicación en el buscador de EMBES, selecciona el tipo de intervención y compara los perfiles de ${s.toLowerCase()} disponibles. Puedes contactar directamente, solicitar presupuesto sin compromiso y elegir al profesional que mejor se adapte a tus necesidades en toda la provincia de ${p}.`,
+    93→        },
+    94→        {
+    95→          question: `¿Atienden ${s.toLowerCase()} en toda la provincia de ${p}?`,
+    96→          answer: `La cobertura de nuestros ${s.toLowerCase()} abarca tanto ${n} como los municipios más cercanos de la provincia de ${p}. Al buscar ${kw}, verás profesionales que desplazan a tu domicilio con rapidez. Si tu localidad no aparece, contacta con nosotros y ampliaremos la búsqueda de ${s.toLowerCase()} en tu zona.`,
+    97→        },
+    98→      ];
+    99→
+   100→    case "reformas":
+   101→      return [
+   102→        {
+   103→          question: `¿Cuánto cuesta ${s.toLowerCase()} en ${n}?`,
+   104→          answer: `${pick(reformOpenings, v)} El precio de ${kw} depende de factores como los materiales elegidos y la superficie a trabajar. En EMBES puedes solicitar hasta tres presupuestos gratuitos de profesionales en ${p}, comparar valoraciones y decidir con total tranquilidad qué ${s.toLowerCase()} se ajusta mejor a tu presupuesto.`,
+   105→        },
+   106→        {
+   107→          question: `¿Los ${s.toLowerCase()} de EMBES ofrecen presupuesto sin compromiso en ${n}?`,
+   108→          answer: `Todos los ${s.toLowerCase()} de nuestro directorio en ${n} ofrecen presupuestos detallados y gratuitos antes de comenzar cualquier trabajo. Podrás ver el desglose de materiales, mano de obra y plazos de ejecución para los servicios de ${kw}. Sin obligación de aceptar y sin coste alguno por la visita previa en la zona de ${p}.`,
+   109→        },
+   110→        {
+   111→          question: `¿Qué tipo de trabajos realizan los ${s.toLowerCase()} en ${n}?`,
+   112→          answer: `Los ${s.toLowerCase()} verificados en ${n} cubren una amplia gama de intervenciones: desde pequeñas reparaciones domésticas hasta reformas integrales de viviendas y locales comerciales. ${service.description}. Consulta el perfil de cada profesional de ${kw} para ver sus especialidades concretas y las valoraciones de otros clientes en ${p}.`,
+   113→        },
+   114→        {
+   115→          question: `¿Cómo elegir el mejor ${service.name.toLowerCase()} en ${n}?`,
+   116→          answer: `En EMBES facilitamos la elección del mejor profesional de ${kw} mostrando valoraciones verificadas, fotos de trabajos anteriores y detalles de la experiencia de cada ${s.toLowerCase()}. Puedes solicitar múltiples presupuestos y comparar antes de decidirte. Todos los profesionales de ${n} han sido evaluados previamente por nuestro equipo.`,
+   117→        },
+   118→        {
+   119→          question: `¿Trabajan ${s.toLowerCase()} en fines de semana en ${n}?`,
+   120→          answer: `Muchos de los ${s.toLowerCase()} disponibles en ${n} ofrecen flexibilidad horaria, incluyendo sábados y domingos, para adaptarse a tu disponibilidad. Al contactar con un profesional de ${kw} a través de EMBES, podrás acordar el horario que mejor te convenga. La disponibilidad real se indica en cada perfil de los ${s.toLowerCase()} de la provincia de ${p}.`,
+   121→        },
+   122→      ];
+   123→
+   124→    case "salud":
+   125→      return [
+   126→        {
+   127→          question: `¿Cómo seleccionan a los profesionales de ${service.name.toLowerCase()} en ${n}?`,
+   128→          answer: `${pick(healthOpenings, v)} Revisamos titulaciones, experiencia profesional, seguros de responsabilidad civil y referencias de pacientes en ${p}. Solo los especialistas que cumplen nuestros estándares aparecen como ${s.toLowerCase()} en ${n} dentro del directorio de EMBES, garantizando una atención de calidad para ti y los tuyos.`,
+   129→        },
+   130→        {
+   131→          question: `¿Los ${s.toLowerCase()} de EMBES en ${n} tienen titulación oficial?`,
+   132→          answer: `Sí, todos los ${s.toLowerCase()} registrados en EMBES para ${n} disponen de la titulación y colegiación requerida por la legislación vigente. Antes de ser incluidos en nuestro directorio, verificamos sus credenciales académicas y profesionales. Puedes consultar los ${kw} con la tranquilidad de que cuentas con especialistas debidamente cualificados en ${p}.`,
+   133→        },
+   134→        {
+   135→          question: `¿Qué servicios ofrecen los ${s.toLowerCase()} verificados en ${n}?`,
+   136→          answer: `Los ${s.toLowerCase()} de EMBES en ${n} ofrecen una cartera completa de servicios: ${service.description.toLowerCase()}. Puedes consultar el perfil de cada profesional en nuestro directorio para ver los tratamientos específicos disponibles. Los ${kw} se adaptan a las necesidades de cada paciente con atención personalizada en toda la provincia de ${p}.`,
+   137→        },
+   138→        {
+   139→          question: `¿Los precios de ${s.toLowerCase()} en ${n} son competitivos?`,
+   140→          answer: `En EMBES promovemos la transparencia tarifaria entre los ${s.toLowerCase()} de ${n}. Puedes solicitar presupuestos sin compromiso y comparar entre varios profesionales antes de tomar una decisión. Los precios de ${kw} se ajustan al mercado de la provincia de ${p}, y muchas consultas y valoraciones iniciales son completamente gratuitas para los usuarios de nuestro directorio.`,
+   141→        },
+   142→        {
+   143→          question: `¿Cómo contacto con ${s.toLowerCase()} en ${n}?`,
+   144→          answer: `Ponerse en contacto con ${kw} a través de EMBES es rápido y sencillo. Solo tienes que buscar el servicio en ${n}, revisar los perfiles disponibles y contactar directamente con el profesional que te interese. Podrás resolver dudas, solicitar cita o pedir un presupuesto inicial sin compromiso. Todo el proceso es gratuito y sin intermediarios en la provincia de ${p}.`,
+   145→        },
+   146→      ];
+   147→
+   148→    case "educacion":
+   149→      return [
+   150→        {
+   151→          question: `¿Qué asignaturas imparten los profesores particulares en ${n}?`,
+   152→          answer: `${pick(educationOpenings, v)} Desde matemáticas, lengua y ciencias hasta idiomas, informática y preparación de exámenes. Los {s} en {l} de EMBES cubren tanto el currículo académico oficial como materias de refuerzo y ampliación para todas las etapas educativas en la provincia de ${p}.`
+   153→            .replace(/{s}/g, s.toLowerCase())
+   154→            .replace(/{l}/g, n),
+   155→        },
+   156→        {
+   157→          question: `¿Los ${s.toLowerCase()} de EMBES en ${n} son profesionales titulados?`,
+   158→          answer: `Todos los ${s.toLowerCase()} que forman parte del directorio de EMBES en ${n} cuentan con la formación y experiencia necesarias en su área. Verificamos sus credenciales, referencias y trayectoria docente antes de publicar su perfil. Al elegir ${kw} a través de nuestra plataforma, tienes la garantía de contar con profesionales debidamente cualificados en ${p}.`,
+   159→        },
+   160→        {
+   161→          question: `¿Puedo elegir entre clases presenciales y online en ${n}?`,
+   162→          answer: `Muchos de los ${s.toLowerCase()} disponibles en ${n} a través de EMBES ofrecen tanto clases presenciales en tu domicilio o en su centro como sesiones online por videollamada. Esta flexibilidad te permite acceder a ${kw} independientemente de tu horario o ubicación dentro de la provincia de ${p}. Consulta la modalidad preferida en cada perfil profesional.`,
+   163→        },
+   164→        {
+   165→          question: `¿Cuánto cuesta ${service.name.toLowerCase()} en ${n}?`,
+   166→          answer: `El precio de ${kw} varía según el nivel educativo, la frecuencia de las sesiones y la modalidad elegida. En EMBES puedes comparar las tarifas de varios ${s.toLowerCase()} en ${n} y solicitar una clase de prueba sin compromiso. Nuestro objetivo es que encuentres la opción más adecuada a tu presupuesto en toda la provincia de ${p}.`,
+   167→        },
+   168→        {
+   169→          question: `¿Cómo sé si el ${s.toLowerCase()} es adecuado para mí en ${n}?`,
+   170→          answer: `En EMBES facilitamos la elección del ${s.toLowerCase()} perfecto en ${n} mediante perfiles detallados que incluyen formación, especialidades, metodología de enseñanza y valoraciones de otros alumnos. Puedes solicitar una primera sesión de prueba con ${kw} para comprobar la afinidad antes de comprometerte. La decisión final siempre es tuya en toda la provincia de ${p}.`,
+   171→        },
+   172→      ];
+   173→
+   174→    case "bienestar":
+   175→      return [
+   176→        {
+   177→          question: `¿Qué servicios ofrecen las peluquerías verificadas en ${n}?`,
+   178→          answer: `${pick(wellbeingOpenings, v)} Entre los servicios más demandados de ${kw} se incluyen cortes de cabello personalizados, coloración completa, mechas y balayage, alisados brasileños, tratamientos de keratina y estilismo para eventos especiales. Cada peluquería en ${n} detalla su catálogo completo en su perfil de EMBES para la provincia de ${p}.`,
+   179→        },
+   180→        {
+   181→          question: `¿Puedo pedir cita con peluquerías en ${n} a través de EMBES?`,
+   182→          answer: `Sí, puedes contactar directamente con las peluquerías de ${n} a través de su perfil en EMBES para solicitar cita. El proceso es sencillo: consulta los horarios disponibles de ${kw}, elige el profesional que prefieras y reserva tu turno. Sin intermediarios ni cargos adicionales por la gestión de citas en la provincia de ${p}.`,
+   183→        },
+   184→        {
+   185→          question: `¿Las peluquerías de EMBES en ${n} trabajan con productos profesionales?`,
+   186→          answer: `Las peluquerías incluidas en nuestro directorio de ${n} utilizan productos de marcas profesionales reconocidas del sector capilar. Al elegir ${kw} a través de EMBES, te aseguras de que los tratamientos se realizan con materiales de primera calidad que protegen y cuidan tu cabello. Consulta las marcas específicas en cada perfil de peluquería de la provincia de ${p}.`,
+   187→        },
+   188→        {
+   189→          question: `¿Cuál es el precio medio de una peluquería en ${n}?`,
+   190→          answer: `El precio de los servicios de ${kw} varía según el tratamiento solicitado: un corte básico tiene un coste distinto a una coloración completa o un tratamiento capilar intensivo. En EMBES puedes consultar las tarifas de cada peluquería en ${n} y comparar antes de reservar. Los precios se ajustan al mercado de la provincia de ${p} con total transparencia.`,
+   191→        },
+   192→        {
+   193→          question: `¿Ofrecen las peluquerías en ${n} servicios para eventos?`,
+   194→          answer: `Muchas de las peluquerías de EMBES en ${n} disponen de servicios especiales para bodas, comuniones, galas y eventos corporativos. Los {s} de {l} ofrecen recogidos, peinados de fiesta y maquillaje profesional coordinado. Puedes solicitar presupuesto sin compromiso y planificar una prueba previa para asegurarte de que el resultado sea perfecto en tu evento en ${p}.`
+   195→            .replace(/{s}/g, s.toLowerCase())
+   196→            .replace(/{l}/g, n),
+   197→        },
+   198→      ];
+   199→
+   200→    default:
+   201→      return [];
+   202→  }
+   203→}
+   204→
+   205→// ─── 2. generateIntro ──────────────────────────────────────────────
+   206→
+   207→const introPhrases: Record<string, string[]> = {
+   208→  emergencias: [
+   209→    "Encontrar {s} fiables en {l} ya no tiene por qué ser una experiencia estresante.",
+   210→    "Si necesitas {s} en {l}, EMBES te conecta con los mejores profesionales de la zona al instante.",
+   211→    "Las urgencias domésticas no esperan, y por eso en EMBES ponemos a tu disposición {s} de confianza en {l}.",
+   212→  ],
+   213→  reformas: [
+   214→    "Si estás pensando en contratar {s} en {l}, EMBES simplifica todo el proceso de búsqueda y comparación.",
+   215→    "Planificar una reforma o reparación en {l} es más fácil con el directorio de {s} verificados de EMBES.",
+   216→    "Los mejores {s} de {l} están a tu alcance gracias al directorio profesional de EMBES.",
+   217→  ],
+   218→  salud: [
+   219→    "Cuidar de tu salud y bienestar en {l} es más sencillo con el directorio de {s} verificados de EMBES.",
+   220→    "En EMBES te ayudamos a encontrar {s} de confianza en {l} con garantía de profesionalidad.",
+   221→    "Tu bienestar merece profesionales cualificados, y por eso en EMBES solo incluimos {s} verificados en {l}.",
+   222→  ],
+   223→  educacion: [
+   224→    "Impulsar tu formación o la de tus hijos en {l} comienza por elegir los {s} adecuados a través de EMBES.",
+   225→    "Encontrar {s} de calidad en {l} es clave para el éxito académico, y EMBES te facilita la tarea.",
+   226→    "El aprendizaje continuo en {l} tiene como aliado al directorio de {s} verificados de EMBES.",
+   227→  ],
+   228→  bienestar: [
+   229→    "Cuidar tu imagen personal en {l} está al alcance de un clic con las {s} verificadas de EMBES.",
+   230→    "Si buscas {s} de confianza en {l}, EMBES te ofrece un directorio con los mejores estilistas de la zona.",
+   231→    "Lucir un aspecto impecable en {l} es posible gracias al directorio de {s} profesionales de EMBES.",
+   232→  ],
+   233→};
+   234→
+   235→const benefitPhrases: Record<string, string[]> = {
+   236→  emergencias: [
+   237→    "Nuestro directorio solo incluye profesionales que han superado un riguroso proceso de validación, lo que significa que puedes solicitar un presupuesto sin compromiso y elegir con total confianza.",
+   238→    "Cada profesional de nuestro directorio cuenta con seguro de responsabilidad civil y garantía escrita sobre sus intervenciones, para que tengas la tranquilidad que mereces.",
+   239→    "Todos los especialistas disponibles han sido evaluados en experiencia, formación y atención al cliente, garantizando un servicio de excelencia en cada intervención.",
+   240→  ],
+   241→  reformas: [
+   242→    "Solo trabajamos con profesionales que han superado nuestro proceso de verificación, lo que te permite solicitar presupuestos sin compromiso y elegir con total confianza.",
+   243→    "Cada especialista disponible en nuestro directorio ofrece garantía sobre sus trabajos y utiliza materiales de primera calidad en cada intervención.",
+   244→    "Nuestro equipo revisa las valoraciones reales de otros clientes para que puedas tomar una decisión informada antes de contratar cualquier servicio.",
+   245→  ],
+   246→  salud: [
+   247→    "Solo incorporamos a nuestro directorio a especialistas con titulación oficial, seguro de responsabilidad civil y buenas referencias de pacientes en la zona.",
+   248→    "Cada profesional ha pasado por un proceso de evaluación que garantiza su cualificación y compromiso con la atención de calidad.",
+   249→    "Puedes consultar valoraciones reales de otros pacientes y solicitar una primera consulta sin compromiso antes de comprometerte.",
+   250→  ],
+   251→  educacion: [
+   252→    "Solo incorporamos a profesionales con formación demostrable, experiencia docente y buenas valoraciones de alumnos anteriores en la zona.",
+   253→    "Cada profesor o centro ha sido evaluado para garantizar su capacidad pedagógica y compromiso con el aprendizaje del alumno.",
+   254→    "Puedes consultar valoraciones reales, solicitar una clase de prueba sin compromiso y elegir al profesional que mejor se adapte a tu estilo de aprendizaje.",
+   255→  ],
+   256→  bienestar: [
+   257→    "Solo incluimos en nuestro directorio a establecimientos con profesionales titulados, buenas valoraciones de clientes y productos de marcas reconocidas.",
+   258→    "Cada establecimiento ha sido visitado y evaluado por nuestro equipo para garantizar la calidad de sus servicios y la satisfacción de sus clientes.",
+   259→    "Puedes consultar galerías de trabajo, valoraciones reales y solicitar cita directamente sin intermediarios ni costes adicionales.",
+   260→  ],
+   261→};
+   262→
+   263→const ctaPhrases: Record<string, string[]> = {
+   264→  emergencias: [
+   265→    "Ya seas de la capital o de cualquier municipio de la {c}, encontrar el profesional adecuado en {l} está a un clic de distancia.",
+   266→    "No importa si resides en el centro de {l} o en las afueras de la {c}: nuestros profesionales llegan a toda la provincia de {p}.",
+   267→    "Desde cualquier punto de la {c}, puedes acceder a nuestro directorio y encontrar atención profesional inmediata en {l}.",
+   268→  ],
+   269→  reformas: [
+   270→    "Tanto si resides en el casco urbano de {l} como en cualquier municipio de la {c}, encontrar el profesional ideal para tu proyecto está a un clic.",
+   271→    "Desde toda la provincia de {p}, puedes acceder a nuestro directorio y comparar profesionales verificados para tu próxima reforma en {l}.",
+   272→    "No importa la ubicación de tu propiedad en la {c}: en EMBES conectamos la demanda con los mejores profesionales de {l}.",
+   273→  ],
+   274→  salud: [
+   275→    "Tanto si vives en {l} como en cualquier otra localidad de la {c}, encontrar el especialista adecuado para ti está a un clic de distancia.",
+   276→    "Desde cualquier punto de la provincia de {p}, puedes acceder a nuestro directorio y elegir al profesional de salud que mejor se adapte a tus necesidades en {l}.",
+   277→    "En toda la {c}, EMBES te acerca a los mejores profesionales verificados para que cuides de tu bienestar sin complicaciones desde {l}.",
+   278→  ],
+   279→  educacion: [
+   280→    "Tanto si buscas clases para ti o para tus hijos en {l}, en EMBES encontrarás al profesional perfecto en toda la {c}.",
+   281→    "Desde cualquier municipio de la provincia de {p}, puedes acceder a profesores y academias verificados a través de nuestro directorio para {l}.",
+   282→    "En toda la {c}, EMBES conecta a alumnos con los mejores docentes verificados, facilitando el aprendizaje de calidad en {l}.",
+   283→  ],
+   284→  bienestar: [
+   285→    "Tanto si buscas un cambio de look rutinario como un estilismo especial en {l}, en EMBES encontrarás al profesional ideal en toda la {c}.",
+   286→    "Desde cualquier punto de la provincia de {p}, puedes acceder a establecimientos verificados y reservar tu cita para {l}.",
+   287→    "En toda la {c}, EMBES te conecta con los mejores profesionales del cuidado personal para que luzcas impecable en {l}.",
+   288→  ],
+   289→};
+   290→
+   291→function generateIntro(service: Service, location: Location): string {
+   292→  const v = locVariation(location);
+   293→  const cluster = service.cluster;
+   294→  const phrases = introPhrases[cluster] ?? introPhrases.emergencias;
+   295→  const benefits = benefitPhrases[cluster] ?? benefitPhrases.emergencias;
+   296→  const ctas = ctaPhrases[cluster] ?? ctaPhrases.emergencias;
+   297→
+   298→  const opening = pick(phrases, v)
+   299→    .replace(/{s}/g, service.shortName.toLowerCase())
+   300→    .replace(/{l}/g, location.name);
+   301→
+   302→  const benefit = pick(benefits, v + 3);
+   303→
+   304→  const cta = pick(ctas, v + 7)
+   305→    .replace(/{l}/g, location.name)
+   306→    .replace(/{c}/g, location.community)
+   307→    .replace(/{p}/g, location.province);
+   308→
+   309→  return `${opening} ${service.description.charAt(0).toLowerCase()}${service.description.slice(1)} ${benefit} ${cta}`;
+   310→}
+   311→
+   312→// ─── 3. generateBenefits ───────────────────────────────────────────
+   313→
+   314→const benefitDescriptions: Record<string, string[]> = {
+   315→  emergencias: [
+   316→    "Todos los {s} en {l} han superado nuestra verificación de identidad, licencias, seguros y experiencia profesional. Cada perfil incluye valoraciones reales de clientes en {p}, para que tomes una decisión informada y segura.",
+   317→    "Puedes solicitar presupuestos gratuitos y sin compromiso de varios {s} en {l}. Compara precios, plazos y condiciones antes de aceptar, sin costes ocultos ni obligaciones de contratación.",
+   318→    "Nuestros {s} en {l} cuentan con movilidad rápida por toda la provincia de {p}. El tiempo medio de respuesta es inferior a 60 minutos para intervenciones urgentes, las 24 horas del día.",
+   319→    "Cada intervención de {s} en {l} está respaldada por seguro de responsabilidad civil y garantía escrita. Si algo no sale bien, EMBES te acompaña en la resolución del incidente.",
+   320→  ],
+   321→  reformas: [
+   322→    "Todos los {s} en {l} han pasado nuestro proceso de verificación: comprobamos licencias, seguros, referencias y galerías de trabajos anteriores. Solo los mejores profesionales de {p} forman parte de nuestro directorio.",
+   323→    "Solicita hasta tres presupuestos gratuitos de {s} en {l} sin compromiso alguno. Compara materiales, plazos de ejecución y valoraciones de otros clientes antes de tomar tu decisión.",
+   324→    "Los {s} de EMBES en {l} se desplazan a tu domicilio con rapidez y flexibilidad horaria, incluyendo fines de semana en muchos casos. Cobertura completa en la provincia de {p}.",
+   325→    "Todos los trabajos realizados por {s} en {l} incluyen garantía sobre materiales y mano de obra. Además, cada profesional dispone de seguro de responsabilidad civil para tu tranquilidad.",
+   326→  ],
+   327→  salud: [
+   328→    "Cada profesional de {s} en {l} ha sido evaluado en titulación oficial, experiencia clínica, seguros y referencias de pacientes en {p}. Solo incorporamos a especialistas que cumplen nuestros rigurosos estándares de calidad.",
+   329→    "Puedes solicitar consultas informativas y presupuestos de {s} en {l} sin coste ni compromiso. Compara opciones y elige al especialista que mejor se adapte a tus necesidades de salud.",
+   330→    "Los {s} de EMBES en {l} ofrecen citas con disponibilidad ajustada a tus horarios. Muchos disponen de agenda flexible incluyendo tardes y sábados en toda la provincia de {p}.",
+   331→    "Todos los {s} verificados en {l} cuentan con seguro de responsabilidad civil y cumplen la normativa sanitaria vigente en {p}. Tu seguridad y bienestar son nuestra máxima prioridad.",
+   332→  ],
+   333→  educacion: [
+   334→    "Todos los {s} en {l} han sido evaluados en formación académica, experiencia docente y referencias de alumnos anteriores. Solo los profesionales mejor valorados de {p} forman parte de nuestro directorio.",
+   335→    "Solicita una clase de prueba gratuita o un presupuesto sin compromiso de {s} en {l}. Compara metodologías, tarifas y horarios antes de comprometerte con cualquier profesional.",
+   336→    "Los {s} de EMBES en {l} ofrecen tanto clases presenciales como online, con horarios flexibles que se adaptan a tu rutina. Disponibilidad en toda la provincia de {p}.",
+   337→    "Todos los {s} verificados en {l} cuentan con la titulación necesaria y seguro de responsabilidad civil. EMBES supervisa periódicamente las valoraciones para mantener la calidad del servicio.",
+   338→  ],
+   339→  bienestar: [
+   340→    "Cada peluquería de {l} en EMBES ha sido evaluada en cualificación de su equipo, calidad de los productos utilizados y satisfacción de los clientes en {p}. Solo los mejores establecimientos forman parte de nuestro directorio.",
+   341→    "Puedes consultar los precios y solicitar cita con las peluquerías en {l} de forma totalmente gratuita y sin compromiso. Compara servicios, Galerías de trabajo y valoraciones antes de reservar.",
+   342→    "Las peluquerías de EMBES en {l} ofrecen citas con horarios flexibles, incluyendo tardes y sábados. Puedes reservar tu turno en línea desde cualquier punto de la provincia de {p}.",
+   343→    "Todos los establecimientos de peluquerías en {l} utilizan productos profesionales de marcas reconocidas y cuentan con los seguros exigidos por la normativa vigente en {p}.",
+   344→  ],
+   345→};
+   346→
+   347→function generateBenefits(
+   348→  service: Service,
+   349→  location: Location
+   350→): { title: string; description: string }[] {
+   351→  const s = service.shortName.toLowerCase();
+   352→  const n = location.name;
+   353→  const p = location.province;
+   354→  const cluster = service.cluster;
+   355→  const descs = benefitDescriptions[cluster] ?? benefitDescriptions.emergencias;
+   356→
+   357→  const titles = [
+   358→    `Profesionales verificados en ${n}`,
+   359→    "Presupuestos gratuitos y sin compromiso",
+   360→    `Respuesta rápida en ${p}`,
+   361→    "Garantía y seguro de responsabilidad civil",
+   362→  ];
+   363→
+   364→  return titles.map((title, i) => ({
+   365→    title,
+   366→    description: descs[i]
+   367→      .replace(/{s}/g, s)
+   368→      .replace(/{l}/g, n)
+   369→      .replace(/{p}/g, p),
+   370→  }));
+   371→}
+   372→
+   373→// ─── 4. generateMeta ───────────────────────────────────────────────
+   374→
+   375→function truncate(str: string, max: number): string {
+   376→  if (str.length <= max) return str;
+   377→  return str.slice(0, max - 1).trimEnd() + "…";
+   378→}
+   379→
+   380→function generateMeta(
+   381→  service: Service,
+   382→  location: Location
+   383→): { title: string; description: string } {
+   384→  const kw = `${service.shortName} en ${location.name}`;
+   385→  const title = truncate(
+   386→    `${kw} | Profesionales Verificados EMBES`,
+   387→    60
+   388→  );
+   389→  const desc = truncate(
+   390→    `Encuentra ${service.shortName.toLowerCase()} verificados en ${location.name}. ${service.description.split(".")[0]}. Presupuestos sin compromiso. EMBES — Profesionales de confianza en ${location.province}.`,
+   391→    160
+   392→  );
+   393→  return { title, description: desc };
+   394→}
+   395→
+   396→// ─── 5. generateStructuredData ─────────────────────────────────────
+   397→
+   398→function generateStructuredData(
+   399→  service: Service,
+   400→  location: Location
+   401→): object {
+   402→  const faqs = generateFAQ(service, location);
+   403→
+   404→  return {
+   405→    "@context": "https://schema.org",
+   406→    "@graph": [
+   407→      {
+   408→        "@type": "BreadcrumbList",
+   409→        itemListElement: [
+   410→          {
+   411→            "@type": "ListItem",
+   412→            position: 1,
+   413→            name: "Inicio",
+   414→            item: "https://embes.es",
+   415→          },
+   416→          {
+   417→            "@type": "ListItem",
+   418→            position: 2,
+   419→            name: "Servicios",
+   420→            item: "https://embes.es/servicios",
+   421→          },
+   422→          {
+   423→            "@type": "ListItem",
+   424→            position: 3,
+   425→            name: service.shortName,
+   426→            item: `https://embes.es/${service.slug}`,
+   427→          },
+   428→          {
+   429→            "@type": "ListItem",
+   430→            position: 4,
+   431→            name: `${service.shortName} en ${location.name}`,
+   432→          },
+   433→        ],
+   434→      },
+   435→      {
+   436→        "@type": "Service",
+   437→        name: `${service.shortName} en ${location.name}`,
+   438→        description: service.description,
+   439→        provider: {
+   440→          "@type": "Organization",
+   441→          name: "EMBES",
+   442→          url: "https://embes.es",
+   443→        },
+   444→        areaServed: {
+   445→          "@type": "City",
+   446→          name: location.name,
+   447→          containedInPlace: {
+   448→            "@type": "AdministrativeArea",
+   449→            name: location.province,
+   450→          },
+   451→        },
+   452→      },
+   453→      {
+   454→        "@type": "FAQPage",
+   455→        mainEntity: faqs.map((faq) => ({
+   456→          "@type": "Question",
+   457→          name: faq.question,
+   458→          acceptedAnswer: {
+   459→            "@type": "Answer",
+   460→            text: faq.answer,
+   461→          },
+   462→        })),
+   463→      },
+   464→    ],
+   465→  };
+   466→}
+   467→
+   468→// ─── 6. getRelatedServices ─────────────────────────────────────────
+   469→
+   470→function getRelatedServices(service: Service): Service[] {
+   471→  const siblings = getClusterServices(service).filter(
+   472→    (s) => s.slug !== service.slug
+   473→  );
+   474→  return siblings.slice(0, 6);
+   475→}
+   476→
+   477→// ─── 7. getNearbyLocations ─────────────────────────────────────────
+   478→
+   479→function getNearbyLocations(
+   480→  location: Location,
+   481→  limit: number = 6
+   482→): Location[] {
+   483→  return locations
+   484→    .filter(
+   485→      (l) => l.community === location.community && l.slug !== location.slug
+   486→    )
+   487→    .slice(0, limit);
+   488→}
+   489→
+   490→// ─── 8. getLocationServices ────────────────────────────────────────
+   491→
+   492→function getLocationServices(location: Location): Service[] {
+   493→  return services;
+   494→}
+   495→
+   496→// ─── 9. generateLocationMeta ───────────────────────────────────────
+   497→
+   498→function generateLocationMeta(
+   499→  location: Location
+   500→): { title: string; description: string } {
+   501→  const title = truncate(
+   502→    `Profesionales Verificados en ${location.name} | EMBES`,
+   503→    60
+   504→  );
+   505→  const topNames = services.slice(0, 4).map((s) => s.shortName.toLowerCase());
+   506→  const desc = truncate(
+   507→    `Directorio de profesionales verificados en ${location.name}, ${location.province}. ${topNames.join(", ")} y más. Presupuestos sin compromiso con EMBES.`,
+   508→    160
+   509→  );
+   510→  return { title, description: desc };
+   511→}
+   512→
+   513→// ─── 10. generateLocationIntro ─────────────────────────────────────
+   514→
+   515→const locationIntroTemplates = [
+   516→  "En {l}, {p}, encontrar profesionales de confianza ha dejado de ser un problema gracias al directorio de EMBES. Nuestra plataforma conecta a los residentes de la {c} con especialistas verificados en múltiples sectores: desde servicios de emergencia las 24 horas y reformas del hogar, hasta salud, educación y bienestar personal. Cada profesional incluido en nuestro directorio ha superado un riguroso proceso de verificación que garantiza su cualificación, experiencia y compromiso con la satisfacción del cliente. Tanto si resides en el centro de {l} como en cualquier localidad cercana de la provincia de {p}, en EMBES puedes comparar perfiles, consultar valoraciones reales y solicitar presupuestos sin compromiso con un solo clic.",
+   517→  "Si vives en {l} o en cualquier municipio de la {c}, EMBES es tu aliado para encontrar profesionales verificados en todas las áreas de servicio. Nuestro directorio cubre desde emergencias domiciliarias y reformas integrales hasta salud, formación académica y bienestar personal. Cada especialista de {l} que aparece en nuestra plataforma ha sido evaluado en cuanto a titulación, seguros de responsabilidad civil y referencias de clientes en {p}. Con EMBES, comparar opciones y solicitar presupuestos gratuitos es tan sencillo como introducir tu ubicación y elegir el profesional que mejor se adapte a tus necesidades en la provincia de {p}.",
+   518→  "Buscas profesionales de confianza en {l}, {p}? En EMBES hemos creado el directorio más completo de especialistas verificados de la {c}. Desde cerrajeros y electricistas de urgencia hasta profesores particulares, dentistas, peluquerías y especialistas en reformas, todos los perfiles de {l} han sido evaluados rigurosamente. Nuestra misión es que los residentes de {l} y de toda la provincia de {p} puedan encontrar, comparar y contactar con profesionales cualificados sin intermediarios ni costes ocultos. Solicita tu presupuesto sin compromiso y elige con total confianza.",
+   519→];
+   520→
+   521→function generateLocationIntro(location: Location): string {
+   522→  const v = locVariation(location);
+   523→  const template = pick(locationIntroTemplates, v);
+   524→  return template
+   525→    .replace(/{l}/g, location.name)
+   526→    .replace(/{p}/g, location.province)
+   527→    .replace(/{c}/g, location.community);
+   528→}
+   529→
+   530→// ─── Exports ───────────────────────────────────────────────────────
+   531→
+   532→export {
+   533→  generateFAQ,
+   534→  generateIntro,
+   535→  generateBenefits,
+   536→  generateMeta,
+   537→  generateStructuredData,
+   538→  getRelatedServices,
+   539→  getNearbyLocations,
+   540→  getLocationServices,
+   541→  generateLocationMeta,
+   542→  generateLocationIntro,
+   543→};
